@@ -1,0 +1,13 @@
+{
+"standard_user": "standard_user",
+"locked_out_user": "locked_out_user",  
+"password": "secret_sauce",
+"product1":"Sauce Labs Backpack",
+"product2":"Sauce Labs Onesie",
+"errorMessageLockedOutUser": "Epic sadface: Sorry, this user has been locked out.",
+"blankCredentialsErrorMsg":"Epic sadface: Username is required",
+"unsafeRedirectsErrorMsg":"Epic sadface: You can only access '/inventory.html' when you are logged in.",
+"orderSucessMsg":"Thank you for your order!",
+"checkOutOverviewMsg":"Checkout: Overview",
+"checkOutInfoMsg":"Checkout: Your Information"
+}

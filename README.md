@@ -34,19 +34,23 @@ This project goes beyond basic test scripts to demonstrate advanced SDET capabil
 ---
 
 ## 🛠️ Project Structure
-
 ```text
-sauce-playwright-pom/
+sauceplaywright/
 ├── src/
 │   ├── pages/           # Page Object Model classes
-│   └── tests/           # Test scripts (test_*.py)
-├── reports/             # HTML reports, Screenshots, Videos
+│   ├── data/            # Test data and fixtures
+│   ├── assets/          # Static assets (css, etc.)
+│   └── tests/           # Internal test helpers / utilities
+├── tests/               # Top-level pytest tests (test_*.py)
 ├── logs/                # Execution logs
+├── screenshots/         # Failure screenshots
+├── videos/              # Optional test recordings
 ├── runner.py            # Custom CLI Orchestrator
-├── conftest.py          # Pytest hooks (Screenshots, Browser setup)
-├── Makefile             # Short commands for easy management
-├── pyproject.toml       # Dependencies & Tool configuration
-└── requirements.txt     # Legacy dependency file
+├── conftest.py          # Pytest hooks (fixtures, attachments)
+├── Makefile
+├── pyproject.toml
+├── requirements.txt
+└── docs/
 ```
 
 ---
@@ -140,11 +144,12 @@ make api       # Start FastAPI runner using uvicorn
 
 ## 📊 Reporting
 
-After execution, all artifacts are stored in the `reports/` directory:
+After execution, artifacts are stored in the repository folders (or generated at runtime):
 
-- **HTML Report:** `report.html` with results, execution time, and environment info
-- **Screenshots:** Automatically captured and attached on failures
-- **Logs:** Detailed execution logs in `logs/session.log`
+- **HTML Report (optional):** May be generated to `reports/` if enabled by your runner
+- **Screenshots:** `screenshots/` (captured on failures)
+- **Videos:** `videos/` (if `--video` enabled)
+- **Logs:** `logs/` (detailed execution logs)
 
 ---
 

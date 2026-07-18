@@ -3,7 +3,7 @@ from pathlib import Path
 
 def repo_root():
     """Return repository root path (useful for tests and reporting)."""
-    return Path(__file__).parents[3]
+    return Path(__file__).parents[2]
 
 
 def ensure_dir(p: Path):

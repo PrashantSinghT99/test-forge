@@ -1,10 +1,12 @@
 # Project architecture — ASCII diagram
 
-C:/Users/Prashant/Desktop/sauceplaywright.worktrees/ascii-diagram-project-architecture
+Repository layout (on-disk):
 
+```
+sauceplaywright/
 ├─ .github/
 │  └─ workflows/
-│     └─ playwrigth.yml
+│     └─ playwright.yml
 ├─ runner.py
 ├─ requirements.txt
 ├─ README.md
@@ -12,37 +14,43 @@ C:/Users/Prashant/Desktop/sauceplaywright.worktrees/ascii-diagram-project-archit
 ├─ .gitignore
 ├─ src/
 │  ├─ __init__.py
+│  ├─ assets/
+│  ├─ data/
 │  ├─ pages/                # Page Object Model (POM) implementations
-│  │  ├─ __init__.py
 │  │  ├─ LoginPage.py
 │  │  ├─ Inventory.py
 │  │  ├─ Cart.py
 │  │  └─ Checkout.py
-│  └─ tests/                # Helper utilities used by tests (helpers, fixtures helpers)
-│     └─ utils/
-│        ├─ __init__.py
-│        └─ helpers.py
-├─ tests/                  # Top-level pytest tests (moved here for convention)
+	│  └─ pytest.ini
+│  ├─ tests/                # Internal helpers used by tests
+│  │  └─ utils/
+│  │     ├─ __init__.py
+│  │     └─ helpers.py
+├─ tests/                  # Top-level pytest tests
 │  ├─ conftest.py
 │  ├─ test_login.py
 │  ├─ test_inventory.py
 │  ├─ test_logout.py
 │  └─ test_checkout.py
-
+├─ logs/
+├─ screenshots/
+├─ videos/
+```
 
 Flow (high level):
 
-1. Developer / CI triggers test run (python runner.py or pytest)
-2. runner.py parses options, sets environment, optionally calls pytest programmatically
-3. pytest loads tests from `tests/` and applies fixtures from `tests/conftest.py`
-4. fixtures (setup_teardown) launch Playwright browser and return a page
-5. tests instantiate Page Objects from `src.pages.*` (LoginPage, Inventory, Cart, Checkout)
-6. Page Objects perform UI interactions and return page-level objects for chaining
-7. Assertions verify UI state; on failures, fixtures attach screenshots / videos
-8. Reports, screenshots and videos are collected in `reports/`, `screenshots/`, `videos/`
+1. Developer / CI triggers test run (`python runner.py` or `pytest`)
+2. `runner.py` parses options, sets environment, and orchestrates pytest execution
+3. Pytest loads tests from `tests/` and applies fixtures from `tests/conftest.py`
+4. Fixtures launch Playwright browser contexts and return page objects
+5. Tests instantiate Page Objects from `src.pages` (LoginPage, Inventory, Cart, Checkout)
+6. Page Objects perform UI interactions; assertions validate UI state
+7. On failures, fixtures attach screenshots/videos and write logs
+8. Artifacts are stored in `screenshots/`, `videos/`, and `logs/` (HTML reports are optional)
 
+Suggestions for cleanup / follow-ups:
 
-Suggestions for next edits:
-- Add a top-level `pages/` package instead of `src/pages/` only if you prefer imports like `from pages.LoginPage import Loginpage`. Current setup uses `src.pages` as an explicit package.
-- Consider adding a test requirements matrix in `tox.ini` and a `pyproject.toml` for tooling.
-- Add a testing README in `docs/` with run examples and CI details.
+- Remove the empty `src/utils/` folder if it is not needed.
+- Consolidate test helpers: choose either `src/tests/utils` or a top-level `tests/utils` to avoid duplication.
+- Optionally create a `reports/` directory when enabling HTML report generation.
+- Add a short `docs/testing.md` with run examples and CI notes (see `README.md` for quick commands).
