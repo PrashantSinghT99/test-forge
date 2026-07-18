@@ -30,9 +30,3 @@ class Checkout:
         
     def get_checkout_sucess(self):
         return self.checkout_sucess_txt
-        
-        
-        
-        
-    
-        

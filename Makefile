@@ -14,7 +14,11 @@ venv:
 
 install: venv
 	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+	@if [ -f pyproject.toml ]; then \
+		$(PIP) install -e ".[test]"; \
+	else \
+		$(PIP) install -r requirements.txt; \
+	fi
 
 # run default discovery under src
 run:

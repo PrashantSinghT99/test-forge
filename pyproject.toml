@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61","wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "test-forge"
+version = "0.1.0"
+description = "Playwright-based POM test framework for demo and learning"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# Core runtime dependencies
+dependencies = [
+  "playwright==1.37.0",
+  "click==8.1.7",
+  "matplotlib==3.8.1",
+]
+
+[project.optional-dependencies]
+# Install test dependencies with: pip install -e .[test]  OR pip install .[test]
+test = [
+  "pytest==8.2.2",
+  "pytest-cov==3.0.0",
+  "pytest-asyncio==0.23.7",
+  "pytest-html==4.1.1",
+  "pytest-xdist==3.6.1",
+  "pytest-playwright==0.5.0",
+  "pytest-rerunfailures==10.2",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/PrashantSinghT99/sauce-playwright-pom"
+"Repository" = "https://github.com/PrashantSinghT99/sauce-playwright-pom"
+
+[tool.pytest.ini_options]
+# Let pytest read tests/ by default
+testpaths = ["tests"]
+addopts = "-ra -q"
+python_files = ["test_*.py"]
+

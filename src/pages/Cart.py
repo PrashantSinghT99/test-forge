@@ -1,4 +1,4 @@
-from pages.Checkout import Checkout
+from src.pages.Checkout import Checkout
 class Cart:
     def __init__(self,page) -> None:
         self.page=page
@@ -16,4 +16,3 @@ class Cart:
     def click_on_checkout(self):
         self.checkout_btn.click()
         return Checkout(self.page)
-        

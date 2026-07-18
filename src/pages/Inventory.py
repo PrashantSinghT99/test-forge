@@ -1,4 +1,4 @@
-from pages.Cart import Cart
+from src.pages.Cart import Cart
 
 
 class Inventory:

@@ -1,4 +1,4 @@
-from pages.Inventory import Inventory
+from src.pages.Inventory import Inventory
 
 
 class Loginpage:

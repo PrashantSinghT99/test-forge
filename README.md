@@ -155,3 +155,42 @@ This project supports `uv`, a fast Python package manager.
 - Faster Python startup and dependency resolution
 - Makefile auto-detects `uv`
 - Falls back to virtualenv Python if `uv` is unavailable
+
+---
+
+## 🧭 Runner and local/CI usage
+
+Runner (runner.py)
+- The project provides a small CLI entrypoint `runner.py` which wraps pytest and exposes convenience flags (target, parallel, retries, video, browser).
+- Example: `python runner.py --parallel 3 --retries 2 --video`
+
+Running tests locally
+- Create and activate a virtualenv (or use `uv` if installed):
+
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Unix
+source .venv/bin/activate
+
+pip install -r requirements.txt
+playwright install
+```
+
+- Run all tests:
+
+```bash
+pytest -q
+# or using the runner
+python runner.py
+```
+
+CI (GitHub Actions)
+- The `.github/workflows/playwright.yml` is configured to install dependencies, install Playwright browsers, and run `python runner.py`. Make sure the workflow uploads `reports/` and `videos/` as artifacts for easier debugging.
+
+Tox / reproducible environments
+- A basic `tox.ini` is included to run tests in isolated envs and check formatting/linting if you add those tools.
+
+---
+
