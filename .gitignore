@@ -24,3 +24,27 @@ htmlcov/
 
 # --- VS Code (Optional) ---
 .vscode/
+
+# Additional common ignores
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Playwright artifacts
+reports/
+logs/
+videos/
+screenshots/
+
+# Byte-compiled / cache
+.mypy_cache/
+.cache/
+
+# Ignore old test folder (refactor cleanup)
+src/tests/
