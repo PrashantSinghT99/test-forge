@@ -34,10 +34,11 @@ jobs:
         run: pip install uv
 
       - name: Install dependencies
-        run: make install
+        run: |
+          pip install -e ".[test]"
 
       - name: Ensure browsers are installed
-        run: .venv/bin/python -m playwright install --with-deps
+        run: python -m playwright install --with-deps chromium
 
       - name: Run branch tests
         continue-on-error: true
@@ -45,11 +46,11 @@ jobs:
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
         run: |
           if [ "${{ matrix.branch }}" = "no_ai" ]; then
-            .venv/bin/python runner.py --branch no_ai --self-heal --classify --retries 2
+            python runner.py --branch no_ai --self-heal --classify --retries 2
           elif [ "${{ matrix.branch }}" = "ai" ]; then
-            .venv/bin/python runner.py --branch ai --self-heal --classify
+            python runner.py --branch ai --self-heal --classify
           else
-            .venv/bin/python runner.py --branch stagehand
+            python runner.py --branch stagehand
           fi
 
       # 🤖 Automatic PR Creation: Apply self-healing patch and create PR
