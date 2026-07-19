@@ -64,7 +64,7 @@ jobs:
           PATCH_FILE="reports/${{ matrix.branch }}/healing_patch.diff"
           if [ -f "$PATCH_FILE" ] && [ -s "$PATCH_FILE" ]; then
             echo "[CI/CD] Healing patch detected. Applying fixes..."
-            git apply "$PATCH_FILE"
+            git apply --ignore-space-change --ignore-whitespace "$PATCH_FILE"
             
             # Setup git configs
             git config --global user.name "github-actions[bot]"

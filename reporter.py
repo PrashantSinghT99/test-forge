@@ -92,9 +92,19 @@ class RunReporter:
                     for i, line in enumerate(lines):
                         if orig in line:
                             new_line = line.replace(orig, healed)
-                            diff_hunk.append(f"@@ -{i+1},1 +{i+1},1 @@")
+                            start_ctx = max(0, i - 2)
+                            end_ctx = min(len(lines), i + 3)
+                            ctx_before = lines[start_ctx:i]
+                            ctx_after = lines[i+1:end_ctx]
+                            hunk_len = len(ctx_before) + 1 + len(ctx_after)
+                            
+                            diff_hunk.append(f"@@ -{start_ctx+1},{hunk_len} +{start_ctx+1},{hunk_len} @@")
+                            for l in ctx_before:
+                                diff_hunk.append(f" {l}")
                             diff_hunk.append(f"-{line}")
                             diff_hunk.append(f"+{new_line}")
+                            for l in ctx_after:
+                                diff_hunk.append(f" {l}")
                     
                     if diff_hunk:
                         patch_lines.append(f"diff --git a/{file_path_str} b/{file_path_str}")
@@ -108,7 +118,7 @@ class RunReporter:
         if patch_lines:
             patch_path = self.reports_dir / "healing_patch.diff"
             try:
-                patch_path.write_text("\n".join(patch_lines), encoding="utf-8")
+                patch_path.write_text("\n".join(patch_lines) + "\n", encoding="utf-8", newline="\n")
                 print(f"[Reporter] Healing patch/PR suggestion written to {patch_path}")
             except Exception as e:
                 print(f"[Reporter] Failed to write patch file: {e}")
