@@ -1,0 +1,69 @@
+import pytest
+from playwright.sync_api import expect
+from src.pages.LoginPage import Loginpage
+import tempfile
+from pathlib import Path
+
+FLAKY_COUNTER_FILE = Path(tempfile.gettempdir()) / "flaky_counter.txt"
+
+def test_login_healing_standard_user(setup_teardown):
+    page = setup_teardown
+    # Deliberately use a broken locator containing keyword "user-name"
+    page.locator("//input[@id='user-name-broken']").fill("standard_user")
+    
+    # Complete rest of flow using POM
+    login_page = Loginpage(page)
+    login_page.enter_password("secret_sauce")
+    login_page.click_loginbtn()
+    
+    expect(page.locator("//span[@class='title']")).to_contain_text("Products")
+
+def test_no_ai_assertion_failure(setup_teardown):
+    page = setup_teardown
+    login_page = Loginpage(page)
+    login_page.enter_username("standard_user")
+    # Assert wrong text to trigger classification
+    expect(login_page.loginPage_title()).to_contain_text("Incorrect Logo Name")
+
+def test_flaky_demo(setup_teardown):
+    # Simulated flaky test: fails the first 2 times, then passes
+    count = 0
+    if FLAKY_COUNTER_FILE.exists():
+        try:
+            count = int(FLAKY_COUNTER_FILE.read_text().strip())
+        except Exception:
+            pass
+            
+    count += 1
+    FLAKY_COUNTER_FILE.write_text(str(count))
+    
+    if count < 3:
+        assert False, f"Simulated flaky failure (Run {count}/3)"
+    else:
+        try:
+            FLAKY_COUNTER_FILE.unlink()
+        except Exception:
+            pass
+        assert True
+
+# 🟢 Clean Passing Tests using real POM on live Sauce Demo site
+def test_login_standard_user_pass(setup_teardown):
+    page = setup_teardown
+    login_page = Loginpage(page)
+    credentials = {"username": "standard_user", "password": "secret_sauce"}
+    inventory_page = login_page.do_login(credentials)
+    
+    expect(inventory_page.inventory_header).to_be_visible()
+    expect(inventory_page.inventory_header).to_contain_text("Products")
+
+def test_inventory_add_item_pass(setup_teardown):
+    page = setup_teardown
+    login_page = Loginpage(page)
+    credentials = {"username": "standard_user", "password": "secret_sauce"}
+    inventory_page = login_page.do_login(credentials)
+    
+    # Use real POM action to add Backpack to cart
+    inventory_page.click_addremove_to_cart("Sauce Labs Backpack")
+    
+    # Verify shopping cart badge is updated to "1"
+    expect(page.locator(".shopping_cart_badge")).to_contain_text("1")

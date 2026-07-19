@@ -281,105 +281,29 @@ def make_pie_chart(stats, outpath: Path, title: str = "Test Results"):
 @click.option('--resume', is_flag=True, default=False, help='Resume from last session (retry failed tests)')
 @click.option('--markers', default=None, help='Pytest markers to pass as -m')
 @click.option('--kexpr', default=None, help='Pytest -k expression')
-def main(path, pattern, parallel, retries, clear, resume, markers, kexpr):
-    ensure_dirs()
-    if clear:
-        clear_previous()
-
-    run_id = uuid.uuid4().hex[:8]
-    session_file = SESSION_DIR / f'session_{run_id}.json'
-
-    base_path = Path(path)
-    if resume:
-        last = sorted(SESSION_DIR.glob('session_*.json'))
-        if not last:
-            print('No previous session found to resume')
-            return
-        session_file = last[-1]
-        with open(session_file) as fh:
-            state = json.load(fh)
-        nodeids = state.get('failed_nodeids', [])
-        if not nodeids:
-            print('No failed tests in last session')
-            return
-        print(f'Rerunning {len(nodeids)} failed tests from {session_file}')
-        html = REPORTS / f'rerun_{session_file.stem}.html'
-        junit = REPORTS / f'rerun_{session_file.stem}.xml'
-        rc, duration = run_pytest(nodeids, html, junit, parallel)
-        stats = parse_junit(junit)
-        make_pie_chart(stats, REPORTS / f'chart_{run_id}.png', title=f'Retry {session_file.stem}')
-        print('Rerun complete. See reports.')
-        return
-
-    if base_path.is_file():
-        test_paths = [base_path]
-    else:
-        test_paths = discover_tests(base_path, pattern)
-
-    if not test_paths:
-        print('No tests found')
-        return
-
-    test_args = [str(p) for p in test_paths]
-    if markers:
-        test_args += ["-m", markers]
-    if kexpr:
-        test_args += ["-k", kexpr]
-
-    html = REPORTS / f'report_{run_id}.html'
-    junit = REPORTS / f'report_{run_id}.xml'
-    rc, duration = run_pytest(test_args, html, junit, parallel)
-    stats = parse_junit(junit)
-
-    failed_nodeids = failed_nodeids_from_junit(junit)
-
-    session_state = {
-        'run_id': run_id,
-        'stats': stats,
-        'failed_nodeids': failed_nodeids,
-        'duration': duration,
-        'env': {
-            'platform': platform.platform(),
-            'python': platform.python_version()
-        }
+@click.option('--branch', default=None, type=click.Choice(['no_ai', 'ai', 'stagehand']), help='Target branch folder')
+@click.option('--flaky-db', default='reports/flaky_history.json', help='Path to flaky database/history file')
+@click.option('--classify', is_flag=True, default=False, help='Enable failure classification')
+@click.option('--self-heal', is_flag=True, default=False, help='Enable self-healing locators')
+@click.option('--ai-model', default=None, help='AI model to use (e.g. "free")')
+def main(path, pattern, parallel, retries, clear, resume, markers, kexpr, branch, flaky_db, classify, self_heal, ai_model):
+    from orchestrator import execute_run
+    opts = {
+        "path": path,
+        "pattern": pattern,
+        "parallel": parallel,
+        "retries": retries,
+        "clear": clear,
+        "resume": resume,
+        "markers": markers,
+        "kexpr": kexpr,
+        "branch": branch,
+        "flaky_db": flaky_db,
+        "classify": classify,
+        "self_heal": self_heal,
+        "ai_model": ai_model
     }
-    with open(session_file, 'w') as fh:
-        json.dump(session_state, fh, indent=2)
-
-    attempt = 0
-    while retries > 0 and failed_nodeids:
-        attempt += 1
-        print(f'Retry attempt {attempt} for {len(failed_nodeids)} tests')
-        html_r = REPORTS / f'retry_{run_id}_{attempt}.html'
-        junit_r = REPORTS / f'retry_{run_id}_{attempt}.xml'
-        rc2, dur2 = run_pytest(failed_nodeids, html_r, junit_r, parallel)
-        parsed2 = parse_junit(junit_r)
-        failed_nodeids = []
-        for t in parsed2['tests']:
-            if t['status'] == 'failed':
-                cls = t.get('classname')
-                name = t.get('name')
-                if cls:
-                    path = cls.replace('.', '/') + '.py'
-                    failed_nodeids.append(f"{path}::{name}")
-        retries -= 1
-        session_state['failed_nodeids'] = failed_nodeids
-        session_state['stats_retry_' + str(attempt)] = parsed2
-        with open(session_file, 'w') as fh:
-            json.dump(session_state, fh, indent=2)
-
-    make_pie_chart(stats, REPORTS / f'chart_{run_id}.png', title=f'Run {run_id}')
-
-    try:
-        videos_map = collect_videos_map(VIDEOS)
-        inject_videos_into_pytest_html(html, videos_map, failed_nodeids)
-    except Exception as e:
-        print('Failed to inject videos into pytest-html report:', e)
-
-    print('Run complete')
-    print(f'Reports: {html}')
-    print(f'Junit: {junit}')
-    print(f'Chart: {REPORTS / f"chart_{run_id}.png"}')
+    execute_run(opts)
 
 if __name__ == '__main__':
     main()

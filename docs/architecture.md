@@ -1,56 +1,54 @@
-# Project architecture — ASCII diagram
+# Project Architecture
 
-Repository layout (on-disk):
+## Repo Structure
 
-```
+```text
 sauceplaywright/
-├─ .github/
-│  └─ workflows/
-│     └─ playwright.yml
-├─ runner.py
-├─ requirements.txt
-├─ README.md
-├─ Makefile
-├─ .gitignore
-├─ src/
-│  ├─ __init__.py
-│  ├─ assets/
-│  ├─ data/
-│  ├─ pages/                # Page Object Model (POM) implementations
-│  │  ├─ LoginPage.py
-│  │  ├─ Inventory.py
-│  │  ├─ Cart.py
-│  │  └─ Checkout.py
-	│  └─ pytest.ini
-│  ├─ tests/                # Internal helpers used by tests
-│  │  └─ utils/
-│  │     ├─ __init__.py
-│  │     └─ helpers.py
-├─ tests/                  # Top-level pytest tests
-│  ├─ conftest.py
-│  ├─ test_login.py
-│  ├─ test_inventory.py
-│  ├─ test_logout.py
-│  └─ test_checkout.py
-├─ logs/
-├─ screenshots/
-├─ videos/
+├── src/
+│   ├── pages/           # Page Object Model (POM) classes
+│   └── testing/         # Shared intelligent core layer
+│       ├── self_healing/ # Locator recovery wrappers & strategy matchers
+│       │   ├── dom_extractor.py
+│       │   ├── strategies.py
+│       │   └── healer.py
+│       ├── stagehand/    # Declarative planning agent
+│       │   └── agent.py
+│       ├── failure_classification.py # Exception categories & regex locator parser
+│       ├── flaky_detection.py # SQLite WAL and JSON locked result history
+│       └── ai_helper.py # Ollama / HF / Gemini routing client
+├── tests/               # isolated test branches
+│   ├── no_ai/           # Deterministic heuristics
+│   ├── ai/              # AI-assisted matching
+│   ├── stagehand/       # Agent execution workflows
+│   └── utils/           # Framework unit tests
+├── runner.py            # CLI parser entrypoint
+├── orchestrator.py      # Execution flow pipeline manager
+└── reporter.py          # Unified stats and summary builder
 ```
 
-Flow (high level):
+## Architectural Flow
 
-1. Developer / CI triggers test run (`python runner.py` or `pytest`)
-2. `runner.py` parses options, sets environment, and orchestrates pytest execution
-3. Pytest loads tests from `tests/` and applies fixtures from `tests/conftest.py`
-4. Fixtures launch Playwright browser contexts and return page objects
-5. Tests instantiate Page Objects from `src.pages` (LoginPage, Inventory, Cart, Checkout)
-6. Page Objects perform UI interactions; assertions validate UI state
-7. On failures, fixtures attach screenshots/videos and write logs
-8. Artifacts are stored in `screenshots/`, `videos/`, and `logs/` (HTML reports are optional)
+```
+   +--------------+      +-------------------+      +-------------+
+   |  runner.py   | ---> |  orchestrator.py  | ---> |   pytest    |
+   +--------------+      +-------------------+      +-------------+
+                                                           |
+  +------------------+       +---------------+             |
+  |  HealingPage     | <==== | conftest.py   | <===========+
+  |  HealingLocator  |       +---------------+
+  +------------------+               |
+           |                         v
+           |               +--------------------+
+           | === click/ ===> | failure_class.py |
+           |     fill        | flaky_detection  |
+           v                 +--------------------+
+   +---------------+
+   |  ai_helper.py | ===> Ollama / HF Serverless / Gemini API
+   +---------------+
+```
 
-Suggestions for cleanup / follow-ups:
-
-- Remove the empty `src/utils/` folder if it is not needed.
-- Consolidate test helpers: choose either `src/tests/utils` or a top-level `tests/utils` to avoid duplication.
-- Optionally create a `reports/` directory when enabling HTML report generation.
-- Add a short `docs/testing.md` with run examples and CI notes (see `README.md` for quick commands).
+1. **CLI Execution (`runner.py` / `orchestrator.py`):** Launches selected branch folder, forwarding flags `--branch`, `--self-heal`, `--classify`, `--flaky-db`.
+2. **Pytest Fixture (`conftest.py`):** Instruments Playwright `page` inside the explicit `HealingPage` wrapper.
+3. **Execution Interception (`healer.py`):** If a locator click/fill action fails, `HealingLocator` intercepts it, takes a screenshot of the broken UI state, extracts page elements, ranks options via `strategies.py` (optionally calling `ai_helper.py`), heals the element, takes a success screenshot, and resumes execution.
+4. **Hooks Logging (`conftest.py` / `failure_classification.py` / `flaky_detection.py`):** Classifies tracebacks on failures, updates flaky counts in SQLite/JSON, and logs event metrics.
+5. **Run Consolidation (`reporter.py`):** Gathers metrics and outputs a unified `run_summary.json` containing healed count statistics alongside Matplotlib pie charts.

@@ -3,33 +3,36 @@
 A lightweight yet robust test automation framework designed for **learning and architectural demonstration**.  
 It utilizes the **Page Object Model (POM)** pattern, a custom **Click-based CLI orchestrator**, and **Pytest** to handle UI automation with Playwright.
 
-This project goes beyond basic test scripts to demonstrate advanced SDET capabilities such as session persistence, dynamic test discovery, parallel execution orchestration, and an optional HTTP API runner.
+This project is augmented with a shared core testing layer providing failure classification, process-safe flaky test history tracking, and self-healing locators (supporting both local heuristics and AI models).
 
 ---
 
 ## 🚀 Key Features
 
-- **Custom CLI Runner**
-  - Centralized entry point (`runner.py`) using `click`
-  - Easy-to-use flags for controlled execution
+- **Execution Branches**
+  - `tests/no_ai/`: Completely deterministic production-ready tests using localized self-healing heuristics.
+  - `tests/ai/`: AI-assisted testing integrating open-source local and cloud-hosted LLM endpoints.
+  - `tests/stagehand/`: Declarative AI Browser Agent planning tests executing goals step-by-step.
 
-- **Smart Execution**
-  - **Parallel Execution:** Concurrent test runs using `pytest-xdist`
-  - **Folder & File Discovery:** Deep scanning for targeted execution
-  - **Retry Mechanism:** Automatic retries for flaky tests via `pytest-rerunfailures`
+- **Failure Classification**
+  - Parses test failures and categorizes exceptions into typed results (`Timeout`, `Locator Issue`, `Assertion`, `Other`).
+  - Automatically extracts failed locators from exception messages.
 
-- **Session Management**
-  - **Session Persistence:** Resume previous runs and re-run only failed tests
-  - **Auto-Cleanup:** Clears logs, screenshots, and reports before new runs
+- **Process-Safe Flaky Detection**
+  - Tracks historical results using SQLite (WAL-mode) or JSON (with cross-platform file locking).
+  - Enforces `min_runs=3` sample guard before flagging test cases as flaky.
 
-- **Rich Reporting**
-  - Consolidated HTML reports
-  - Automatic screenshot capture on failures
-  - Optional video recording via flags
-  - Execution duration tracking with Pie Chart visualization
+- **Self-Healing Locator Guardrails**
+  - Captures `before_heal.png` and `after_heal.png` screenshots on successful locator healing.
+  - Caps healing attempts at 3 per action, requiring a minimum similarity score threshold of 0.5.
+  - Healed tests are tracked as `PASSED (healed)` in summaries.
 
-- **High Performance**
-  - Optimized dependency management and execution using **uv**
+- **Multi-Provider AI Client**
+  - Dynamically routes requests for selector healing and planning to:
+    1. **Local Ollama:** `qwen2.5-coder:1.5b` running on `http://localhost:11434`.
+    2. **Hugging Face Serverless API:** `Qwen/Qwen2.5-Coder-7B-Instruct` using `HF_API_TOKEN`.
+    3. **Gemini API:** `gemini-2.5-flash` using `GEMINI_API_KEY`.
+    4. **Local Heuristics:** Falls back to offline similarity logic if APIs are unavailable.
 
 ---
 
@@ -38,50 +41,38 @@ This project goes beyond basic test scripts to demonstrate advanced SDET capabil
 sauceplaywright/
 ├── src/
 │   ├── pages/           # Page Object Model classes
-│   ├── data/            # Test data and fixtures
-│   ├── assets/          # Static assets (css, etc.)
+│   ├── testing/         # Core testing layer
+│   │   ├── self_healing/ # Healer, strategies, extractor
+│   │   ├── stagehand/    # Stagehand AI planning agent
+│   │   ├── failure_classification.py
+│   │   ├── flaky_detection.py
+│   │   └── ai_helper.py
 │   └── tests/           # Internal test helpers / utilities
-├── tests/               # Top-level pytest tests (test_*.py)
-├── logs/                # Execution logs
-├── screenshots/         # Failure screenshots
-├── videos/              # Optional test recordings
-├── runner.py            # Custom CLI Orchestrator
-├── conftest.py          # Pytest hooks (fixtures, attachments)
-├── Makefile
-├── pyproject.toml
-├── requirements.txt
-└── docs/
+├── tests/               # Pytest tests divided by execution branch
+│   ├── no_ai/           # Deterministic healing & classification
+│   ├── ai/              # AI-assisted healing
+│   ├── stagehand/       # Declarative planner agent tests
+│   ├── utils/           # Framework unit tests
+│   └── conftest.py      # Pytest hooks, page wrappers, command flags
+├── runner.py            # CLI entrypoint
+├── orchestrator.py      # Runner pipeline execution manager
+├── reporter.py          # Summary generator & Matplotlib charts
+└── docs/                # Design architecture & documentation
 ```
 
 ---
 
 ## ⚙️ Quick Setup
 
-### 1. Create and activate a virtual environment
-
+### 1. Create and activate environment
 ```bash
-# Using standard Python
-python3 -m venv .venv
-source .venv/bin/activate
-
-# OR using uv (Recommended)
-uv venv
-source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-### 2. Install dependencies
-
+### 2. Install dependencies & browsers
 ```bash
-# Using pip
 pip install -r requirements.txt
-
-# OR using uv
-uv sync
-```
-
-### 3. Install Playwright browsers
-
-```bash
 playwright install
 ```
 
@@ -89,113 +80,61 @@ playwright install
 
 ## 🏃 Usage
 
-### Option 1: Custom Runner (Recommended)
+### CLI Commands
 
-The `runner.py` script provides granular control over test execution.
+The custom entrypoint `runner.py` manages all pipelines:
 
-**Basic run**
+**Run deterministic tests with self-healing & classification**
 ```bash
-python runner.py
+python runner.py --branch no_ai --self-heal --classify
 ```
 
-**Parallel execution (3 workers)**
+**Run AI-assisted self-healing branch**
 ```bash
-python runner.py --parallel 3
+# Using Hugging Face Serverless API
+export HF_API_TOKEN="your-hf-token"
+python runner.py --branch ai --self-heal --classify
+
+# Or using local Ollama (ensure Ollama is running)
+python runner.py --branch ai --self-heal --classify
 ```
 
-**Run a specific file or folder**
+**Run declarative Stagehand browser agent planner**
 ```bash
-python runner.py --target src/tests/login/
+python runner.py --branch stagehand
 ```
 
-**Run with retries and video recording**
-```bash
-python runner.py --retries 2 --video
-```
+### Command Flags
 
-#### Full Command Options
-
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--target` | `-t` | Path to file or folder to run (Default: `src/tests`) |
-| `--parallel` | `-p` | Number of parallel workers (Default: 1) |
-| `--tags` | `-m` | Filter by pytest markers (e.g., smoke, sanity) |
-| `--retries` | `-r` | Number of retries for failed tests |
-| `--clean` | — | Clear reports and logs before execution |
-| `--video` | — | Enable video recording |
-| `--browser` | — | Browser choice: chromium, firefox, webkit |
-
-### Option 2: Makefile Targets
-
-Shortcuts for common workflows.  
-The Makefile prefers `uv run` if available.
-
-```bash
-make install   # Create venv and install dependencies
-make run       # Discover & run all tests
-make smoke     # Run smoke tests
-make sanity    # Run sanity tests
-make clear     # Remove reports, videos, screenshots, logs
-make resume    # Resume last session (re-run failed tests)
-make api       # Start FastAPI runner using uvicorn
-```
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--branch` | Target branch suite (`no_ai`, `ai`, `stagehand`) | None |
+| `--self-heal` | Enable self-healing locator wrapper | False |
+| `--classify` | Enable failure classification | False |
+| `--flaky-db` | Path to flaky history JSON/SQLite file | `reports/flaky_history.json` |
+| `--ai-model` | AI model override parameter | None |
+| `--resume` | Resume last session (rerun failed tests) | False |
+| `--parallel` | Number of concurrent workers (`pytest-xdist`) | 0 |
+| `--retries` | Number of retries for failed tests | 0 |
 
 ---
 
-## 📊 Reporting
+## 📊 Reporting & Outputs
 
-After execution, artifacts are stored in the repository folders (or generated at runtime):
-
-- **HTML Report (optional):** May be generated to `reports/` if enabled by your runner
-- **Screenshots:** `screenshots/` (captured on failures)
-- **Videos:** `videos/` (if `--video` enabled)
-- **Logs:** `logs/` (detailed execution logs)
-
----
-
-## 💡 Using uv run
-
-This project supports `uv`, a fast Python package manager.
-
-- Faster Python startup and dependency resolution
-- Makefile auto-detects `uv`
-- Falls back to virtualenv Python if `uv` is unavailable
+Outputs are saved in the `reports/` folder:
+- `reports/run_summary.json`: Unified run statistics containing passed, failed, flaky, and healed counts.
+- `reports/failure_classification.json`: Categorized exceptions and locator details.
+- `reports/chart_[run_id].png`: Visual execution outcome distribution pie chart.
+- `reports/report_[run_id].html`: Standard HTML execution report.
 
 ---
 
-## 🧭 Runner and local/CI usage
+## 🔮 Future Enhancements
 
-Runner (runner.py)
-- The project provides a small CLI entrypoint `runner.py` which wraps pytest and exposes convenience flags (target, parallel, retries, video, browser).
-- Example: `python runner.py --parallel 3 --retries 2 --video`
-
-Running tests locally
-- Create and activate a virtualenv (or use `uv` if installed):
-
-```bash
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Unix
-source .venv/bin/activate
-
-pip install -r requirements.txt
-playwright install
-```
-
-- Run all tests:
-
-```bash
-pytest -q
-# or using the runner
-python runner.py
-```
-
-CI (GitHub Actions)
-- The `.github/workflows/playwright.yml` is configured to install dependencies, install Playwright browsers, and run `python runner.py`. Make sure the workflow uploads `reports/` and `videos/` as artifacts for easier debugging.
-
-Tox / reproducible environments
-- A basic `tox.ini` is included to run tests in isolated envs and check formatting/linting if you add those tools.
-
----
-
+- **Memory-Based Self-Healing:** Implement a historical baseline snapshot database (`reports/element_baselines.json`). Instead of parsing keywords from failed selectors, the healer will:
+  1. Save element metadata (tag, classes, parent DOM tree indices, text) on the first successful run.
+  2. On locator failure, compare active DOM candidates against this saved snapshot memory.
+  3. Pick the closest match by weighted similarity rules, heal the element, and update the baseline memory.
+- **Heal Impact Analysis:** Map dependencies between Page Object Model (POM) classes and test suites. When a locator is healed inside a shared page class (like `LoginPage`), the engine will:
+  1. Identify all test cases that instantiate or depend on this POM class.
+  2. Flag these dependent test cases as "impacted" and automatically run them to verify the healed locator doesn't cause regressions elsewhere in the suite.
