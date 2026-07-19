@@ -77,15 +77,15 @@ jobs:
             git commit -m "style(test): auto-fix broken locators via self-healing in ${{ matrix.branch }}"
             
             # Delete old healing branches for this matrix branch to avoid stale PRs
-            git push origin --delete "self-healing-${{ matrix.branch }}-latest" 2>/dev/null || true
-            git push origin "$BRANCH_NAME"
+            # Force push branch to handle job re-runs (same run_id)
+            git push --force origin "$BRANCH_NAME"
             
             # Use GitHub CLI to create PR with explicit never-merge note
             gh pr create \
               --title "🤖 [Self-Healing Demo] Fix locator drifts in ${{ matrix.branch }} — DO NOT MERGE" \
               --body "$PR_BODY" \
               --head "$BRANCH_NAME" \
-              --base master
+              --base master || echo "[CI/CD] PR already created for this branch."
           else
             echo "[CI/CD] No healing patch found or file is empty."
           fi
