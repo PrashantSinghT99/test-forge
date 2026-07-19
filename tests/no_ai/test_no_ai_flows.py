@@ -14,7 +14,7 @@ def test_login_healing_standard_user(setup_teardown):
     # When run with --self-heal (CI/CD only), the engine heals it at runtime,
     # the test passes, and a PR is opened with the fix — which we intentionally
     # never merge, so the locator stays broken for the next CI/CD run.
-    page.locator("//input[@id='user-name-broken']").fill("standard_user")  # BROKEN — DO NOT CHANGE
+    page.locator("//*[@id="user-name"]").fill("standard_user")  # BROKEN — DO NOT CHANGE
     
     # Complete rest of flow using POM
     login_page = Loginpage(page)
