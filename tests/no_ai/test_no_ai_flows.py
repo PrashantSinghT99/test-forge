@@ -8,8 +8,13 @@ FLAKY_COUNTER_FILE = Path(tempfile.gettempdir()) / "flaky_counter.txt"
 
 def test_login_healing_standard_user(setup_teardown):
     page = setup_teardown
-    # Deliberately use a broken locator containing keyword "user-name"
-    page.locator("//input[@id='user-name-broken']").fill("standard_user")
+    # ⚠️  INTENTIONALLY BROKEN LOCATOR — DO NOT FIX THIS LINE ⚠️
+    # This test is a permanent self-healing demo fixture for the no_ai branch.
+    # The broken locator below will ALWAYS fail on its own.
+    # When run with --self-heal (CI/CD only), the engine heals it at runtime,
+    # the test passes, and a PR is opened with the fix — which we intentionally
+    # never merge, so the locator stays broken for the next CI/CD run.
+    page.locator("//input[@id='user-name-broken']").fill("standard_user")  # BROKEN — DO NOT CHANGE
     
     # Complete rest of flow using POM
     login_page = Loginpage(page)
