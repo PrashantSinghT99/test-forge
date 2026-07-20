@@ -1,9 +1,9 @@
-# Project Architecture
+# Test Forge Architecture
 
 ## Repo Structure
 
 ```text
-sauceplaywright/
+test-forge/
 ├── src/
 │   ├── pages/           # Page Object Model (POM) classes
 │   └── framework/       # Shared intelligent framework core layer

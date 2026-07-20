@@ -26,8 +26,8 @@ test = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/PrashantSinghT99/sauce-playwright-pom"
-"Repository" = "https://github.com/PrashantSinghT99/sauce-playwright-pom"
+"Homepage" = "https://github.com/PrashantSinghT99/test-forge"
+"Repository" = "https://github.com/PrashantSinghT99/test-forge"
 
 [tool.pytest.ini_options]
 # Let pytest read tests/ by default

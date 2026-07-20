@@ -1,4 +1,4 @@
-# Makefile for sauce-playwright-pom (test-forge)
+# Makefile for Test Forge Automation Framework
 # Usage: make <target>
 
 .PHONY: install test-no-ai test-ai test-stagehand test-all clear help

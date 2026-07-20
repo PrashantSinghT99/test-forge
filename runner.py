@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Custom test runner for the Sauce Playwright POM project.
+Custom CLI test runner for the Test Forge automation framework.
 """
 import click
 import subprocess
