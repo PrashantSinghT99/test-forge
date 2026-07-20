@@ -26,11 +26,12 @@ def ensure_dirs():
     for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS, SESSION_DIR):
         d.mkdir(parents=True, exist_ok=True)
 
-def clear_previous():
-    """Cleans up previous execution outputs across reports, logs, videos, and screenshots."""
-    for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS):
-        if d.exists():
-            for child in d.iterdir():
+def clear_previous(branch: str = None):
+    """Cleans up previous execution outputs for the specified branch without wiping sibling branch reports."""
+    if branch:
+        branch_dir = REPORTS / branch
+        if branch_dir.exists():
+            for child in branch_dir.iterdir():
                 try:
                     if child.is_file() or child.is_symlink():
                         child.unlink()
@@ -38,6 +39,21 @@ def clear_previous():
                         shutil.rmtree(child)
                 except Exception:
                     pass
+        else:
+            branch_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS):
+            if d.exists():
+                for child in d.iterdir():
+                    if child.is_dir() and child.name in ("no_ai", "ai", "stagehand"):
+                        continue
+                    try:
+                        if child.is_file() or child.is_symlink():
+                            child.unlink()
+                        elif child.is_dir():
+                            shutil.rmtree(child)
+                    except Exception:
+                        pass
 
 def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extra_opts: dict):
     """
