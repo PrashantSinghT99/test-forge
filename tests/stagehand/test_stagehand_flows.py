@@ -1,5 +1,5 @@
 import pytest
-from src.testing.stagehand.agent import StagehandAgent
+from src.framework.stagehand.agent import StagehandAgent
 
 def test_stagehand_login_and_add_backpack(setup_teardown):
     page = setup_teardown

@@ -4,7 +4,7 @@ The `tests/stagehand/` folder introduces a declarative AI Browser Agent and Plan
 
 ## Orchestration and Execution Flow
 
-The Stagehand agent (`src/testing/stagehand/agent.py`) executes objectives using an iterative planning loop:
+The Stagehand agent (`src/framework/stagehand/agent.py`) executes objectives using an iterative planning loop:
 
 ```mermaid
 graph TD

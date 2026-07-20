@@ -4,9 +4,9 @@ import tempfile
 import time
 import os
 
-from src.testing.failure_classification import classify_failure, FailureResult
-from src.testing.flaky_detection import FlakyDetector, FileLock
-from src.testing.self_healing.strategies import parse_keywords, calculate_similarity, match_selectors
+from src.framework.failure_classification import classify_failure, FailureResult
+from src.framework.flaky_detection import FlakyDetector, FileLock
+from src.framework.self_healing.strategies import parse_keywords, calculate_similarity, match_selectors
 
 def test_failure_classification():
     # 1. Timeout Classification

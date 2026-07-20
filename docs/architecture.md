@@ -6,7 +6,7 @@
 sauceplaywright/
 ├── src/
 │   ├── pages/           # Page Object Model (POM) classes
-│   └── testing/         # Shared intelligent core layer
+│   └── framework/       # Shared intelligent framework core layer
 │       ├── self_healing/ # Locator recovery wrappers & strategy matchers
 │       │   ├── dom_extractor.py
 │       │   ├── strategies.py
@@ -61,7 +61,7 @@ sauceplaywright/
 
 #### **When It Triggers & How It Operates**
 - **Action-Level Interception**: Self-healing triggers at the **element action level** inside `HealingLocator._run_action_with_healing()` *before* the test case fails.
-- **Code Reference**: [src/testing/self_healing/healer.py](file:///c:/Users/Prashant/Desktop/sauceplaywright/src/testing/self_healing/healer.py#L90-L93)
+- **Code Reference**: [src/framework/self_healing/healer.py](file:///c:/Users/Prashant/Desktop/sauceplaywright/src/framework/self_healing/healer.py#L90-L93)
   ```python
   try:
       return action_fn(self._original)  # 1. Attempt original Playwright action
