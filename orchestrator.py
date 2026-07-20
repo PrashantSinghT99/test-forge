@@ -92,20 +92,22 @@ def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extr
         env["PYTEST_BRANCH"] = extra_opts["branch"]
         
     print("Running command:", " ".join(cmd))
+    print("Working directory:", str(ROOT))
     start = time.time()
-    res = subprocess.run(cmd, env=env)
+    res = subprocess.run(cmd, env=env, cwd=str(ROOT))
     duration = time.time() - start
     return res.returncode, duration
 
 def execute_run(options: dict):
     ensure_dirs()
+    branch = options.get("branch")
     if options.get("clear"):
-        clear_previous()
+        clear_previous(branch=branch)
 
     run_id = uuid.uuid4().hex[:8]
     session_file = SESSION_DIR / f'session_{run_id}.json'
     
-    branch = options.get("branch")
+    # branch already resolved above
     path = options.get("path", ".")
     pattern = options.get("pattern", "test_*.py")
     parallel = options.get("parallel", 0)

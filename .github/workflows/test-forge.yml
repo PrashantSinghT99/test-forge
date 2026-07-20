@@ -22,7 +22,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [no_ai, ai, stagehand]
+        include:
+          - branch: no_ai
+            make_target: test-no-ai
+          - branch: ai
+            make_target: test-ai
+          - branch: stagehand
+            make_target: test-stagehand
     steps:
       - uses: actions/checkout@v4
 
@@ -31,27 +37,23 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install uv
-        run: pip install uv
+      - name: Debug environment
+        run: |
+          python --version
+          python -m pip show pytest
+          python -c "import sys; print('Python:', sys.executable)"
 
       - name: Install dependencies
         run: make install
 
-      - name: Ensure browsers are installed
-        run: uv run playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: make install-browsers
 
       - name: Run branch tests
         continue-on-error: true
         env:
           HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
-        run: |
-          if [ "${{ matrix.branch }}" = "no_ai" ]; then
-            make test-no-ai
-          elif [ "${{ matrix.branch }}" = "ai" ]; then
-            make test-ai
-          else
-            make test-stagehand
-          fi
+        run: make ${{ matrix.make_target }}
 
       # 🤖 Self-Healing PR Demo: apply patch → push branch → open PR → NEVER MERGE
       # The broken locator in test_login_healing_standard_user is intentionally permanent.
