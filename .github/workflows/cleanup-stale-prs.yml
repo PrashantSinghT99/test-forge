@@ -1,0 +1,47 @@
+name: Cleanup Stale Self-Healing PRs
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # daily at 03:00 UTC (08:30 IST) — 1 hour after test run
+  workflow_dispatch:       # allows manual trigger from GitHub Actions UI
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup-stale-prs:
+    name: Close Stale Self-Healing PRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Close self-healing PRs older than 1 day
+        run: |
+          echo "=== Fetching open self-healing PRs ==="
+          CUTOFF=$(date -d '1 day ago' --iso-8601=seconds)
+          echo "Closing PRs created before: $CUTOFF"
+
+          STALE_PRS=$(gh pr list \
+            --state open \
+            --search "Self-Healing in:title" \
+            --json number,title,createdAt \
+            --jq '.[] | select(.createdAt < "'"$CUTOFF"'") | .number')
+
+          if [ -z "$STALE_PRS" ]; then
+            echo "No stale self-healing PRs found."
+          else
+            echo "Found stale PRs: $STALE_PRS"
+            for PR_NUM in $STALE_PRS; do
+              echo "Closing PR #$PR_NUM..."
+              gh pr close "$PR_NUM" \
+                --comment "Auto-closed by daily cleanup job. A fresh self-healing PR will be created on the next CI run." \
+                --delete-branch \
+                && echo "Closed PR #$PR_NUM" \
+                || echo "Could not close PR #$PR_NUM (may already be closed)"
+            done
+          fi
+
+          echo "=== Stale PR cleanup complete ==="
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
