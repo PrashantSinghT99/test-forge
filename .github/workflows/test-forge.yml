@@ -149,62 +149,96 @@ jobs:
 
       - name: Consolidate reports structure
         run: |
+          # Debug: show what was downloaded
+          echo "=== Downloaded artifact structure ==="
+          find merged-reports -type f | head -50 || true
+
           mkdir -p reports/no_ai reports/ai reports/stagehand
-          
+
           # Copy outputs back to main reports directories
           if [ -d "merged-reports/reports-no_ai" ]; then
-            cp -r merged-reports/reports-no_ai/* reports/no_ai/ || true
+            cp -r merged-reports/reports-no_ai/. reports/no_ai/
+            echo "Copied no_ai reports"
+          else
+            echo "WARNING: no_ai reports not found in merged-reports"
           fi
           if [ -d "merged-reports/reports-ai" ]; then
-            cp -r merged-reports/reports-ai/* reports/ai/ || true
+            cp -r merged-reports/reports-ai/. reports/ai/
+            echo "Copied ai reports"
+          else
+            echo "WARNING: ai reports not found in merged-reports"
           fi
           if [ -d "merged-reports/reports-stagehand" ]; then
-            cp -r merged-reports/reports-stagehand/* reports/stagehand/ || true
+            cp -r merged-reports/reports-stagehand/. reports/stagehand/
+            echo "Copied stagehand reports"
           fi
-          
-          # Create a simple navigation dashboard index.html
-          cat << 'EOF' > reports/index.html
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>Test Automation Reports Dashboard</title>
-              <style>
-                  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 40px; }
-                  .container { max-width: 800px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-                  h1 { color: #38bdf8; text-align: center; margin-bottom: 30px; }
-                  .branch-card { display: flex; justify-content: space-between; align-items: center; background: #334155; padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #475569; }
-                  .branch-name { font-size: 18px; font-weight: bold; }
-                  .btn { background: #0284c7; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px; transition: background 0.2s; }
-                  .btn:hover { background: #0369a1; }
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <h1>📊 QA Intelligence Dashboard</h1>
-                  <div class="branch-card">
-                      <div class="branch-name">Deterministic Branch (No AI)</div>
-                      <a class="btn" href="no_ai/" target="_blank">View Reports</a>
-                  </div>
-                  <div class="branch-card">
-                      <div class="branch-name">AI-Assisted Branch</div>
-                      <a class="btn" href="ai/" target="_blank">View Reports</a>
-                  </div>
-                  <div class="branch-card">
-                      <div class="branch-name">Stagehand Branch (Browser Agent)</div>
-                      <a class="btn" href="stagehand/" target="_blank">View Reports</a>
-                  </div>
-              </div>
-          </body>
-          </html>
-          EOF
-          
-          # Ensure index.html exists inside subfolders if pytest HTML reports are not directly visible
-          # Find HTML file in subfolders and rename/create a link to it
+
+          echo "=== Final reports structure ==="
+          find reports -type f | head -50 || true
+
+          # Ensure index.html exists for each branch
           for branch in no_ai ai stagehand; do
             if [ -f "reports/$branch/report.html" ]; then
               cp "reports/$branch/report.html" "reports/$branch/index.html"
+              echo "Created index.html for $branch"
+            else
+              echo "WARNING: reports/$branch/report.html not found, creating placeholder"
+              echo "<html><body><h2>No report available for $branch yet.</h2></body></html>" > "reports/$branch/index.html"
             fi
           done
+
+          # Create dashboard index.html
+          cat > reports/index.html << 'DASHBOARD'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Forge — QA Intelligence Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+        .container { max-width: 860px; width: 100%; background: #1e293b; padding: 40px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        h1 { color: #38bdf8; text-align: center; margin-bottom: 8px; font-size: 2rem; }
+        .subtitle { text-align: center; color: #94a3b8; margin-bottom: 36px; font-size: 0.95rem; }
+        .branch-card { display: flex; justify-content: space-between; align-items: center; background: #334155; padding: 22px 28px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #475569; transition: border-color 0.2s; }
+        .branch-card:hover { border-color: #38bdf8; }
+        .branch-info .branch-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+        .branch-info .branch-desc { font-size: 0.82rem; color: #94a3b8; }
+        .btn { background: #0284c7; color: white; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: background 0.2s, transform 0.1s; display: inline-block; }
+        .btn:hover { background: #0369a1; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 QA Intelligence Dashboard</h1>
+        <p class="subtitle">Test Forge — Parallel Branch Execution Reports</p>
+        <div class="branch-card">
+            <div class="branch-info">
+                <div class="branch-name">🔬 Deterministic Branch (No AI)</div>
+                <div class="branch-desc">Self-healing locators · Failure classification · Flaky detection</div>
+            </div>
+            <a class="btn" href="no_ai/index.html">View Reports</a>
+        </div>
+        <div class="branch-card">
+            <div class="branch-info">
+                <div class="branch-name">🤖 AI-Assisted Branch</div>
+                <div class="branch-desc">LLM-powered healing · AI assertion analysis</div>
+            </div>
+            <a class="btn" href="ai/index.html">View Reports</a>
+        </div>
+        <div class="branch-card">
+            <div class="branch-info">
+                <div class="branch-name">🕹️ Stagehand Branch (Browser Agent)</div>
+                <div class="branch-desc">Declarative AI browser agent execution</div>
+            </div>
+            <a class="btn" href="stagehand/index.html">View Reports</a>
+        </div>
+    </div>
+</body>
+</html>
+DASHBOARD
+          echo "Dashboard index.html created"
 
       - name: Upload Report to Pages
         uses: actions/upload-pages-artifact@v3
