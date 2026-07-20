@@ -101,7 +101,7 @@ class RunReporter:
         for event in healing_events:
             test_name = event.get("test_name", "")
             parts = test_name.split("::")
-            file_path_str = parts[0]
+            file_path_str = parts[0].replace("\\", "/")
             file_path = Path(file_path_str)
             if not file_path.exists():
                 file_path = Path(__file__).parent / file_path_str
