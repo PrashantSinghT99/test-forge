@@ -1,64 +1,48 @@
-# Makefile for sauce-playwright-pom
+# Makefile for sauce-playwright-pom (test-forge)
 # Usage: make <target>
-# This Makefile prefers `uv run` if available. Set `UV=uv` to change.
 
-.PHONY: venv install run smoke sanity clear resume help
+.PHONY: install test-no-ai test-ai test-stagehand test-all clear help
 
-UV ?= uv
-VENV ?= .venv
-PY := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
+UV := $(shell command -v uv 2> /dev/null)
 
-venv:
-	python3 -m venv $(VENV)
+install:
+ifdef UV
+	uv pip install --system -e ".[test]" || uv pip install -e ".[test]"
+else
+	pip install -e ".[test]"
+endif
 
-install: venv
-	$(PIP) install --upgrade pip
-	@if [ -f pyproject.toml ]; then \
-		$(PIP) install -e ".[test]"; \
-	else \
-		$(PIP) install -r requirements.txt; \
-	fi
+test-no-ai:
+ifdef UV
+	uv run runner.py --branch no_ai --self-heal --classify --retries 2
+else
+	python runner.py --branch no_ai --self-heal --classify --retries 2
+endif
 
-# run default discovery under src
-run:
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) run runner.py -p src; \
-	else \
-		$(PY) runner.py -p src; \
-	fi
+test-ai:
+ifdef UV
+	uv run runner.py --branch ai --self-heal --classify
+else
+	python runner.py --branch ai --self-heal --classify
+endif
 
-smoke:
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) run runner.py -p src --markers smoke; \
-	else \
-		$(PY) runner.py -p src --markers smoke; \
-	fi
+test-stagehand:
+ifdef UV
+	uv run runner.py --branch stagehand
+else
+	python runner.py --branch stagehand
+endif
 
-sanity:
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) run runner.py -p src --markers sanity; \
-	else \
-		$(PY) runner.py -p src --markers sanity; \
-	fi
+test-all: test-no-ai test-ai test-stagehand
 
 clear:
 	-rm -rf reports/* videos/* screenshots/* logs/* || true
 
-resume:
-	@if command -v $(UV) >/dev/null 2>&1; then \
-		$(UV) run runner.py --resume; \
-	else \
-		$(PY) runner.py --resume; \
-	fi
-
-
 help:
 	@echo "Makefile targets:"
-	@echo "  venv      - create virtualenv at $(VENV)"
-	@echo "  install   - create venv and install requirements"
-	@echo "  run       - discover and run tests under src (uses 'uv run' if available)"
-	@echo "  smoke     - run smoke-marked tests"
-	@echo "  sanity    - run sanity-marked tests"
-	@echo "  clear     - remove reports, videos, screenshots and logs"
-	@echo "  resume    - resume last session (retry failed tests)"
+	@echo "  install        - install dependencies via uv / pip"
+	@echo "  test-no-ai     - run no_ai deterministic suite with self-healing and classification"
+	@echo "  test-ai        - run ai-assisted self-healing branch suite"
+	@echo "  test-stagehand - run declarative stagehand agent suite"
+	@echo "  test-all       - run all execution branches sequentially"
+	@echo "  clear          - clean reports, screenshots, videos, logs"

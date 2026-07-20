@@ -48,7 +48,7 @@ class RunReporter:
         
         flaky_count = 0
         try:
-            from src.framework.flaky_detection import FlakyDetector
+            from src.framework.core.flaky_detection import FlakyDetector
             detector = FlakyDetector(flaky_db_path)
             history = detector.load_history()
             for test_id in history:
@@ -205,7 +205,7 @@ class RunReporter:
         
         flaky_count = 0
         try:
-            from src.framework.flaky_detection import FlakyDetector
+            from src.framework.core.flaky_detection import FlakyDetector
             flaky_db_path = self.reports_dir.parent / "flaky_history.json"
             detector = FlakyDetector(flaky_db_path)
             history = detector.load_history()
@@ -238,7 +238,7 @@ class RunReporter:
             
             is_flaky = False
             try:
-                from src.framework.flaky_detection import FlakyDetector
+                from src.framework.core.flaky_detection import FlakyDetector
                 flaky_db_path = self.reports_dir.parent / "flaky_history.json"
                 detector = FlakyDetector(flaky_db_path)
                 for t_id in history:

@@ -122,7 +122,7 @@ class HealingLocator:
             
             if self._healing_page.use_ai:
                 try:
-                    from ..ai_helper import suggest_locator
+                    from src.framework.ai.ai_helper import suggest_locator
                     ai_suggestion = suggest_locator(self._selector, candidates)
                     if ai_suggestion:
                         print(f"[Self-Healing] AI suggested fallback: '{ai_suggestion}'", file=sys.stderr)

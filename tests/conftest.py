@@ -6,9 +6,9 @@ import shutil
 import os
 import json
 
-from src.framework.flaky_detection import FlakyDetector, FileLock
-from src.framework.failure_classification import classify_failure
-from src.framework.self_healing.healer import HealingPage
+from src.framework.core.flaky_detection import FlakyDetector, FileLock
+from src.framework.core.failure_classification import classify_failure
+from src.framework.no_ai.healer import HealingPage
 
 def pytest_addoption(parser):
     parser.addoption("--branch", action="store", default=None, help="Target branch folder")
