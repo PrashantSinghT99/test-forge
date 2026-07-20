@@ -31,7 +31,7 @@ def test_login_ai_healing(setup_teardown):
     """
     page = setup_teardown
     # ⚠️  INTENTIONALLY BROKEN LOCATOR FOR AI DEMO — DO NOT FIX THIS LINE ⚠️
-    page.locator("//input[@id='user-name-broken-ai']").fill("standard_user")  # BROKEN FOR AI DEMO
+    page.locator("//*[@id="user-name"]").fill("standard_user")  # BROKEN FOR AI DEMO
     
     login_page = Loginpage(page)
     login_page.enter_password("secret_sauce")
