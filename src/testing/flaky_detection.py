@@ -1,3 +1,9 @@
+"""
+Flaky Test Detection and Persistent History Engine.
+
+Provides atomic thread-safe lock mechanisms (FileLock) and history tracking (SQLite or JSON)
+to compute flakiness scores and detect unstable test cases across execution sessions.
+"""
 import json
 import sqlite3
 import time
@@ -6,12 +12,23 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 class FileLock:
+    """
+    Cross-platform inter-process file locking mechanism using low-level OS flags.
+    """
     def __init__(self, lock_path: str, timeout: float = 10.0):
+        """
+        Initialize FileLock.
+
+        Args:
+            lock_path (str): File system path for lock file.
+            timeout (float): Max wait duration in seconds before timing out.
+        """
         self.lock_path = lock_path
         self.timeout = timeout
         self.locked = False
 
     def acquire(self):
+        """Acquires lock file using O_CREAT | O_EXCL flags."""
         start_time = time.time()
         while True:
             try:
@@ -24,6 +41,7 @@ class FileLock:
                 time.sleep(0.05)
 
     def release(self):
+        """Releases and unlinks lock file."""
         if self.locked:
             try:
                 os.close(self.fd)
@@ -40,7 +58,16 @@ class FileLock:
         self.release()
 
 class FlakyDetector:
+    """
+    Tracks execution status history across test sessions to identify flaky tests.
+    """
     def __init__(self, db_path: Path):
+        """
+        Initialize FlakyDetector database.
+
+        Args:
+            db_path (Path): Path to SQLite (.sqlite/.db) or JSON history file.
+        """
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.is_sqlite = self.db_path.suffix in (".db", ".sqlite", ".sqlite3")
@@ -50,6 +77,7 @@ class FlakyDetector:
             self._init_sqlite()
 
     def _init_sqlite(self):
+        """Initializes SQLite schema with WAL journal mode."""
         conn = sqlite3.connect(self.db_path, timeout=10.0)
         try:
             conn.execute("PRAGMA journal_mode=WAL;")
@@ -76,6 +104,7 @@ class FlakyDetector:
         return str(self.db_path) + ".lock"
 
     def load_history(self) -> Dict[str, List[str]]:
+        """Loads all test execution status histories."""
         if self.is_sqlite:
             history = {}
             conn = sqlite3.connect(self.db_path, timeout=10.0)
@@ -100,6 +129,14 @@ class FlakyDetector:
                 return {}
 
     def record_result(self, test_id: str, status: str, timestamp: float = None):
+        """
+        Records a single test run result into persistent history.
+
+        Args:
+            test_id (str): Unique nodeid string for test.
+            status (str): Execution outcome ('passed', 'failed', 'skipped').
+            timestamp (float): Timestamp in epoch seconds.
+        """
         if timestamp is None:
             timestamp = time.time()
         
@@ -135,6 +172,18 @@ class FlakyDetector:
                     json.dump(data, f, indent=2)
 
     def calculate_flaky_score(self, test_id: str) -> float:
+        """
+        Calculates flaky confidence score [0.0 - 1.0] based on status variance.
+
+        Formula:
+            score = (2 * min(passes, failures)) / total_runs
+
+        Args:
+            test_id (str): Unique nodeid string for test.
+
+        Returns:
+            float: Flakiness score between 0.0 (stable) and 1.0 (highly flaky).
+        """
         history = self.load_history()
         runs = history.get(test_id, [])
         if len(runs) < 3:
@@ -149,9 +198,11 @@ class FlakyDetector:
         return (2.0 * min(passes, failures)) / total
 
     def is_flaky(self, test_id: str, threshold: float = 0.2) -> bool:
+        """Determines if a test is flaky based on threshold."""
         return self.calculate_flaky_score(test_id) >= threshold
 
     def suggest_rerun(self, test_id: str, current_status: str) -> bool:
+        """Suggests whether a failed test should be retried based on past pass history."""
         if current_status != "failed":
             return False
         history = self.load_history()

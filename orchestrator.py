@@ -1,3 +1,9 @@
+"""
+Test Execution Orchestrator and Pipeline Manager.
+
+Coordinates pytest test runs, retry loops for failed tests, branch environment scoping,
+temporary file cleanup, and reporter summary generation.
+"""
 import uuid
 import time
 import json
@@ -16,10 +22,12 @@ SCREENSHOTS = ROOT / "screenshots"
 SESSION_DIR = ROOT / "session"
 
 def ensure_dirs():
+    """Ensures required output directories exist."""
     for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS, SESSION_DIR):
         d.mkdir(parents=True, exist_ok=True)
 
 def clear_previous():
+    """Cleans up previous execution outputs across reports, logs, videos, and screenshots."""
     for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS):
         if d.exists():
             for child in d.iterdir():
@@ -32,6 +40,19 @@ def clear_previous():
                     pass
 
 def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extra_opts: dict):
+    """
+    Executes a pytest subprocess command with configured flags and environment variables.
+
+    Args:
+        test_args (list): Target test files or nodeids.
+        html_path (Path): Path to output HTML report.
+        junit_path (Path): Path to output JUnit XML file.
+        parallel (int): Number of parallel xdist workers (0 for sequential).
+        extra_opts (dict): Execution options (branch, self_heal, classify, flaky_db).
+
+    Returns:
+        tuple[int, float]: Tuple of (return_code, duration_in_seconds).
+    """
     cmd = ["python", "-m", "pytest"] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
     if parallel and parallel > 0:
         cmd = ["python", "-m", "pytest", "-n", str(parallel)] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]

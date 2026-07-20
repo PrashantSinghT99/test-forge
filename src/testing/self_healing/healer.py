@@ -1,3 +1,10 @@
+"""
+Self-Healing Proxy Layer for Playwright Pages and Locators.
+
+This module provides object wrappers around Playwright `Page` and `Locator` instances
+to automatically detect broken elements during execution, extract DOM candidates, apply
+heuristic/AI selector strategies, capture visual evidence (screenshots), and resume execution.
+"""
 import time
 from pathlib import Path
 from playwright.sync_api import Locator
@@ -5,7 +12,21 @@ from .dom_extractor import get_candidates
 from .strategies import match_selectors
 
 class HealingLocator:
+    """
+    Proxy wrapper around a Playwright `Locator` object.
+
+    Intercepts interactive actions (fill, click, type, press, etc.) to handle element
+    resolution failures by triggering the self-healing recovery loop.
+    """
     def __init__(self, healing_page, original_locator, selector):
+        """
+        Initialize the HealingLocator proxy.
+
+        Args:
+            healing_page (HealingPage): Parent page proxy holding context and config.
+            original_locator (Locator): Playwright sync locator instance.
+            selector (str): Original selector string used to build the locator.
+        """
         self._healing_page = healing_page
         self._original = original_locator
         self._selector = selector
@@ -18,30 +39,51 @@ class HealingLocator:
         return Locator
 
     def click(self, **kwargs):
+        """Executes click action with self-healing fallback handling."""
         return self._run_action_with_healing("click", lambda loc: loc.click(**kwargs))
 
     def fill(self, value, **kwargs):
+        """Executes fill action with self-healing fallback handling."""
         return self._run_action_with_healing("fill", lambda loc: loc.fill(value, **kwargs))
 
     def clear(self, **kwargs):
+        """Executes clear action with self-healing fallback handling."""
         return self._run_action_with_healing("clear", lambda loc: loc.clear(**kwargs))
 
     def type(self, text, **kwargs):
+        """Executes type action with self-healing fallback handling."""
         return self._run_action_with_healing("type", lambda loc: loc.type(text, **kwargs))
 
     def press(self, key, **kwargs):
+        """Executes press action with self-healing fallback handling."""
         return self._run_action_with_healing("press", lambda loc: loc.press(key, **kwargs))
 
     def check(self, **kwargs):
+        """Executes check action with self-healing fallback handling."""
         return self._run_action_with_healing("check", lambda loc: loc.check(**kwargs))
 
     def uncheck(self, **kwargs):
+        """Executes uncheck action with self-healing fallback handling."""
         return self._run_action_with_healing("uncheck", lambda loc: loc.uncheck(**kwargs))
 
     def select_option(self, values=None, **kwargs):
+        """Executes select_option action with self-healing fallback handling."""
         return self._run_action_with_healing("select_option", lambda loc: loc.select_option(values, **kwargs))
 
     def _run_action_with_healing(self, action_name, action_fn, *args, **kwargs):
+        """
+        Executes a locator action with automatic fallback healing recovery upon failure.
+
+        Args:
+            action_name (str): Name of the Playwright action (e.g. 'click', 'fill').
+            action_fn (Callable[[Locator], Any]): Lambda function wrapping the Playwright action.
+
+        Returns:
+            Any: Result of the action function upon success.
+
+        Raises:
+            Exception: Original exception if self-healing is disabled, max attempts exceeded, or no fallback succeeds.
+        """
         if not self._healing_page.enabled:
             return action_fn(self._original)
 
@@ -134,7 +176,23 @@ class HealingLocator:
 
 
 class HealingPage:
+    """
+    Proxy wrapper around a Playwright `Page` instance.
+
+    Overrides `page.locator()` to return a `HealingLocator` proxy while forwarding
+    all other attributes and methods to the underlying Playwright page.
+    """
     def __init__(self, page, test_name="", enabled=True, use_ai=False, max_attempts=3):
+        """
+        Initialize the HealingPage wrapper.
+
+        Args:
+            page (Page): Underlying Playwright sync Page instance.
+            test_name (str): Current pytest nodeid/name for log attribution.
+            enabled (bool): Whether self-healing is active.
+            use_ai (bool): Whether to attempt LLM-based fallback suggestions.
+            max_attempts (int): Maximum healing recoveries allowed per page session.
+        """
         self.page = page
         self.test_name = test_name
         self.enabled = enabled
@@ -143,6 +201,15 @@ class HealingPage:
         self.healed_attempts = []
 
     def locator(self, selector, **kwargs):
+        """
+        Creates a HealingLocator proxy wrapping the requested selector.
+
+        Args:
+            selector (str): Target CSS or XPath selector.
+
+        Returns:
+            HealingLocator: Wrapped locator instance with self-healing interceptor.
+        """
         loc = self.page.locator(selector, **kwargs)
         return HealingLocator(self, loc, selector)
 

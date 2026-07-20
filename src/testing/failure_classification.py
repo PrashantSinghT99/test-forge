@@ -1,8 +1,24 @@
+"""
+Automated Test Failure Classifier.
+
+Categorizes test failures into structured taxonomy buckets (Assertion, Locator Issue, Timeout, Other)
+and extracts target element selector strings from stack traces and exception messages.
+"""
 from dataclasses import dataclass, asdict
 import re
 
 @dataclass
 class FailureResult:
+    """
+    Structured failure analysis outcome.
+
+    Attributes:
+        category (str): Standardized classification category (e.g. 'Assertion', 'Locator Issue', 'Timeout').
+        message (str): Original raw exception message text.
+        locator (str | None): Extracted target element selector, if identified.
+        healed (bool): Whether the failure was successfully recovered via self-healing.
+        healed_selector (str | None): Replacement selector used if healed.
+    """
     category: str
     message: str
     locator: str | None
@@ -10,9 +26,21 @@ class FailureResult:
     healed_selector: str | None = None
     
     def to_dict(self):
+        """Converts dataclass instance into a JSON-serializable dictionary."""
         return asdict(self)
 
 def classify_failure(exception_type: str, exception_message: str, traceback_str: str = "") -> FailureResult:
+    """
+    Analyses exception metadata to classify the failure type and extract selector details.
+
+    Args:
+        exception_type (str): Python class name of the exception (e.g. 'AssertionError', 'TimeoutError').
+        exception_message (str): String representation of the exception.
+        traceback_str (str): Full execution stack trace string (optional).
+
+    Returns:
+        FailureResult: Structured FailureResult object containing classification and extracted locator.
+    """
     typename = exception_type.lower()
     msg = exception_message.lower()
     

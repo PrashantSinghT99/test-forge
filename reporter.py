@@ -1,3 +1,9 @@
+"""
+Unified Test Run Reporter and Dashboard Generator.
+
+Parses test metrics, JUnit XML artifacts, failure classifications, and self-healing logs.
+Generates glassmorphic HTML dashboards with Base64 embedded screenshots and Git diff patches.
+"""
 import json
 from pathlib import Path
 import os
@@ -7,13 +13,35 @@ REPORTS = Path("reports")
 REPORTS.mkdir(parents=True, exist_ok=True)
 
 class RunReporter:
+    """
+    Consolidates session data and generates reports, patches, and unified JSON summaries.
+    """
     def __init__(self, run_id: str, reports_dir: Path, schema_version: str = "1.0"):
+        """
+        Initialize the RunReporter.
+
+        Args:
+            run_id (str): Unique execution run identifier hex.
+            reports_dir (Path): Output directory path for branch reports.
+            schema_version (str): Reporting JSON schema version.
+        """
         self.run_id = run_id
         self.reports_dir = Path(reports_dir)
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         self.schema_version = schema_version
 
     def generate_summary(self, stats: dict, healing_events: list, flaky_db_path: Path) -> dict:
+        """
+        Aggregates run statistics, healing counts, and flaky test metrics into a JSON summary.
+
+        Args:
+            stats (dict): Test outcome counts from JUnit parser (passed, failed, skipped).
+            healing_events (list): List of self-healing event dictionaries.
+            flaky_db_path (Path): Path to flaky history database.
+
+        Returns:
+            dict: Comprehensive summary dictionary.
+        """
         passed = stats.get("passed", 0)
         failed = stats.get("failed", 0)
         skipped = stats.get("skipped", 0)
@@ -54,6 +82,7 @@ class RunReporter:
         return summary
 
     def save_failure_classifications(self, classifications: dict):
+        """Saves failure classification mapping to JSON file."""
         class_path = self.reports_dir / "failure_classification.json"
         data = {
             "schema_version": self.schema_version,

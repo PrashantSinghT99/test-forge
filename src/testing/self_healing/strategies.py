@@ -1,8 +1,22 @@
+"""
+Heuristic Matching Strategies for Deterministic Self-Healing.
+
+Provides token extraction, string similarity algorithms, attribute intersection scoring,
+and threshold ranking to select candidate replacement locators without external API calls.
+"""
 import re
 from typing import List, Dict, Tuple
 
 def parse_keywords(selector: str) -> List[str]:
-    """Extracts search keywords/tokens from the failed selector."""
+    """
+    Extracts semantic search keywords/tokens from a broken selector string.
+
+    Args:
+        selector (str): The failed XPath or CSS selector string.
+
+    Returns:
+        List[str]: List of lower-case alphanumeric tokens, excluding generic XPath/CSS keywords.
+    """
     # Find all word segments
     words = re.findall(r'[a-zA-Z0-9]+', selector)
     # Ignore common query/xpath selectors
@@ -11,7 +25,16 @@ def parse_keywords(selector: str) -> List[str]:
     return keywords
 
 def calculate_similarity(failed_selector: str, candidate: Dict) -> float:
-    """Calculates similarity score [0.0 - 1.0] between selector and candidate element."""
+    """
+    Calculates a similarity score [0.0 - 1.0] between a failed selector and a DOM candidate element.
+
+    Args:
+        failed_selector (str): The broken selector string.
+        candidate (Dict): DOM element attribute dictionary extracted from page.
+
+    Returns:
+        float: Similarity confidence score between 0.0 and 1.0.
+    """
     keywords = parse_keywords(failed_selector)
     if not keywords:
         return 0.0
@@ -61,7 +84,17 @@ def calculate_similarity(failed_selector: str, candidate: Dict) -> float:
     return min(score, 1.0)
 
 def match_selectors(failed_selector: str, candidates: List[Dict], threshold: float = 0.5) -> List[Tuple[float, Dict]]:
-    """Scores all candidate elements and returns a sorted list of matches above the threshold."""
+    """
+    Scores all candidate elements and returns a sorted list of matches above the given threshold.
+
+    Args:
+        failed_selector (str): The broken selector string.
+        candidates (List[Dict]): List of candidate elements extracted from page DOM.
+        threshold (float): Minimum confidence score threshold (default 0.5).
+
+    Returns:
+        List[Tuple[float, Dict]]: Ranked list of (score, candidate_dict) tuples sorted descending by score.
+    """
     scored = []
     for c in candidates:
         score = calculate_similarity(failed_selector, c)

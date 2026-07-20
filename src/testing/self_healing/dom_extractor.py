@@ -1,8 +1,25 @@
-def get_candidates(page) -> list[dict]:
+"""
+DOM Candidate Extractor for Self-Healing Engine.
+
+Executes client-side JavaScript in the browser context via Playwright to extract
+interactive element attributes, unique XPaths, and CSS paths while redacting sensitive fields.
+"""
+from typing import List, Dict, Any
+
+def get_candidates(page) -> List[Dict[str, Any]]:
     """
-    Retrieves all candidate elements for self-healing from the page,
-    redacting sensitive values (like input passwords or long tokens)
-    and generating CSS paths and XPaths.
+    Extracts all candidate interactive elements from the active page DOM.
+
+    Args:
+        page (Page): Active Playwright Page instance.
+
+    Returns:
+        List[Dict[str, Any]]: List of dictionary representations of DOM elements containing:
+            - tag, id, name, data_test, placeholder, text, className, xpath, css.
+
+    Notes:
+        - Redacts sensitive field values (password, hidden inputs).
+        - Truncates text content to maximum 100 characters.
     """
     js_code = """
     () => {
