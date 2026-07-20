@@ -26,7 +26,7 @@ You are an expert CI/CD architect specializing in Python test automation pipelin
 
 ## Project-Specific Knowledge (Test Forge)
 * The project uses `Makefile` for execution targets (`make install`, `make test-no-ai`, `make test-ai`, `make test-stagehand`).
-* GitHub Actions workflow located at `.github/workflows/playwright.yml`.
+* GitHub Actions workflow located at `.github/workflows/test-forge.yml`.
 * Package management powered by `uv` and `pyproject.toml`.
 * Self-Healing engine writes unified patches to `reports/<branch>/healing_patch.diff`.
 * Automated PRs are created using GitHub CLI (`gh`) with explicit `DO NOT MERGE` warnings to keep test fixtures broken for ongoing demo runs.

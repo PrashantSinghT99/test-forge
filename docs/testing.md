@@ -25,4 +25,4 @@ CI notes:
 
 - Ensure Playwright browsers are installed (`playwright install`) in the CI job.
 - Persist `reports/`, `screenshots/`, `videos/`, and `logs/` as artifacts for debugging.
-- The workflow file is `.github/workflows/playwright.yml`.
+- The workflow file is `.github/workflows/test-forge.yml`.
