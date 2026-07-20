@@ -36,6 +36,29 @@ This project is augmented with a shared core testing layer providing failure cla
 
 ---
 
+## 🔬 Deterministic (`no_ai`) Technical Breakdown
+
+For a complete architectural overview, refer to [docs/architecture.md](file:///c:/Users/Prashant/Desktop/sauceplaywright/docs/architecture.md).
+
+### 1. ⚡ Self-Healing Locator Engine ([healer.py](file:///c:/Users/Prashant/Desktop/sauceplaywright/src/testing/self_healing/healer.py))
+- **Action-Level Interception**: Intercepts element failures in real-time inside `HealingLocator._run_action_with_healing()` *before* the test case fails.
+- **Before/After Evidence**: Captures `before_heal_<ts>.png` (showing missing/broken selector state) and `after_heal_<ts>.png` (showing recovered state).
+- **Candidate Scoring**: `dom_extractor.py` scans active browser elements via client-side JavaScript, and `strategies.py` ranks candidates using string similarity & attribute intersection boosts (ID +0.2, Name +0.2, Data-Test +0.3).
+- **Git Patch Generation**: Writes `reports/no_ai/healing_patch.diff` with 3-line unified diff context lines, allowing CI/CD to auto-create Pull Requests.
+
+### 2. 🎯 Failure Classification ([failure_classification.py](file:///c:/Users/Prashant/Desktop/sauceplaywright/src/testing/failure_classification.py))
+- **Invoked By**: `pytest_runtest_makereport` hook in [conftest.py](file:///c:/Users/Prashant/Desktop/sauceplaywright/tests/conftest.py).
+- **When**: Runs at test completion (`rep.when == 'call'`) whenever `rep.failed == True` and `--classify` is active.
+- **Rules**: Categorizes failures into taxonomy buckets (`Assertion`, `Locator Issue`, `Timeout`, `Other`) and extracts target locators using regex.
+
+### 3. 📊 Process-Safe Flaky Detection ([flaky_detection.py](file:///c:/Users/Prashant/Desktop/sauceplaywright/src/testing/flaky_detection.py))
+- **Phase 1 (Recording)**: `conftest.py` records `'passed'` or `'failed'` for every run/retry into `reports/flaky_history.json` (atomic via `FileLock`).
+- **Phase 2 (Scoring)**: `reporter.py` computes variance score:
+  $$\text{Flaky Score} = \frac{2 \times \min(\text{passes}, \text{failures})}{\text{total runs}}$$
+  Tests alternating between pass and fail ($\text{score} \ge 0.2$) are flagged as **FLAKY DETECTED** on the HTML dashboard.
+
+---
+
 ## 🛠️ Project Structure
 ```text
 sauceplaywright/
