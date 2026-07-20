@@ -1,3 +1,13 @@
+"""
+AI Multi-Provider Locator Healing & Routing Client.
+
+Routes broken selector healing requests to available LLM providers in priority order:
+1. Local Ollama (qwen2.5-coder:1.5b on http://localhost:11434)
+2. Hugging Face Serverless API (Qwen/Qwen2.5-Coder-7B-Instruct via HF_API_TOKEN)
+3. Gemini API (gemini-2.5-flash via GEMINI_API_KEY)
+
+If all AI providers are unavailable, gracefully returns None to allow local heuristic fallback.
+"""
 import os
 import json
 import urllib.request
@@ -7,6 +17,7 @@ from typing import List, Dict, Optional
 _HEALING_CACHE: Dict[str, str] = {}
 
 def check_ollama_alive(url: str = "http://localhost:11434") -> bool:
+    """Checks if a local Ollama server instance is responding."""
     try:
         req = urllib.request.Request(url, method="HEAD")
         with urllib.request.urlopen(req, timeout=1.0) as conn:
