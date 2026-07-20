@@ -34,4 +34,5 @@ test = [
 testpaths = ["tests"]
 addopts = "-ra -q"
 python_files = ["test_*.py"]
+pythonpath = ["."]
 

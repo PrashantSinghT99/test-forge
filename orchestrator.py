@@ -10,6 +10,7 @@ import json
 import subprocess
 import platform
 import os
+import sys
 from pathlib import Path
 import shutil
 from reporter import RunReporter
@@ -69,9 +70,9 @@ def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extr
     Returns:
         tuple[int, float]: Tuple of (return_code, duration_in_seconds).
     """
-    cmd = ["python", "-m", "pytest"] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
+    cmd = [sys.executable, "-m", "pytest"] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
     if parallel and parallel > 0:
-        cmd = ["python", "-m", "pytest", "-n", str(parallel)] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
+        cmd = [sys.executable, "-m", "pytest", "-n", str(parallel)] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
         
     if extra_opts.get("branch"):
         cmd.append(f"--branch={extra_opts['branch']}")
@@ -86,6 +87,7 @@ def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extr
         
     # Pass branch to subprocess via env so healer.py knows where to write screenshots
     env = os.environ.copy()
+    env["PYTHONPATH"] = str(ROOT)
     if extra_opts.get("branch"):
         env["PYTEST_BRANCH"] = extra_opts["branch"]
         
