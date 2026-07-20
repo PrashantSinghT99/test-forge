@@ -1,63 +1,86 @@
 """
 AI-Assisted Test Suite for SauceDemo Application.
 
-This module contains end-to-end test scenarios demonstrating:
-1. AI-assisted self-healing locator recovery (Ollama / HuggingFace / Gemini with heuristic fallback).
-2. Automated failure classification for assertion mismatches.
-3. State-based flaky test detection across execution retry windows.
-4. Clean Page Object Model (POM) passing flows.
+Branch: ai
+Focus:  Inventory page AI self-healing · Cart page assertions · Full checkout flow
+
+Test Scenarios:
+    1. [HEAL]  AI-assisted healing of broken 'Add to Cart' locator on Inventory page
+    2. [FAIL]  Assertion failure demo — wrong cart page title classification
+    3. [FLAKY] Flaky test detection across retry windows
+    4. [PASS]  Full checkout flow: login → add item → cart → checkout → complete
+    5. [PASS]  Logout flow: verify redirect back to login after hamburger menu logout
 """
 import pytest
 from playwright.sync_api import expect
 from src.pages.LoginPage import Loginpage
+from src.pages.Inventory import Inventory
+from src.pages.Cart import Cart
 import tempfile
 from pathlib import Path
 
-# Shared temporary counter file for tracking AI flaky test state across pytest retries
+# Shared counter file for AI flaky-test state across pytest retry runs
 FLAKY_COUNTER_FILE_AI = Path(tempfile.gettempdir()) / "flaky_counter_ai.txt"
 
-def test_login_ai_healing(setup_teardown):
-    """
-    Demonstrates AI-assisted self-healing locator recovery during execution.
 
-    Args:
-        setup_teardown (HealingPage): Playwright page wrapped with Self-Healing Proxy (use_ai=True).
+# ──────────────────────────────────────────────
+# 🤖 AI Self-Healing Demo  (ai branch)
+# ──────────────────────────────────────────────
+def test_inventory_add_to_cart_ai_healing(setup_teardown):
+    """
+    Demonstrates AI-assisted healing on the Inventory page 'Add to Cart' button.
 
     Flow:
-        - Executes `.fill()` using an intentionally invalid XPath selector (`user-name-broken-ai`).
-        - The `HealingPage` intercepts the locator timeout, passes DOM candidates to `ai_helper.py`,
-          queries Ollama / HuggingFace / Gemini (or fallback heuristics), resolves `//*[@id="user-name"]`,
-          captures before/after screenshots, and completes the login flow.
-    """
-    page = setup_teardown
-    # ⚠️  INTENTIONALLY BROKEN LOCATOR FOR AI DEMO — DO NOT FIX THIS LINE ⚠️
-    page.locator("//input[@id='user-name-broken-ai']").fill("standard_user")  # BROKEN FOR AI DEMO
-    
-    login_page = Loginpage(page)
-    login_page.enter_password("secret_sauce")
-    login_page.click_loginbtn()
-    
-    expect(page.locator("//span[@class='title']")).to_contain_text("Products")
+        - Logs in as standard_user (login locators are correct).
+        - Attempts to click 'Add to Cart' using a broken data-test attribute locator.
+        - AI HealingPage proxy resolves the correct button via DOM scoring.
+        - Verifies cart badge shows '1' after the healed click.
 
-def test_ai_assertion_failure(setup_teardown):
-    """
-    Demonstrates deterministic failure classification in the AI branch.
-
-    Args:
-        setup_teardown (HealingPage): Playwright page wrapped with Self-Healing Proxy.
+    ⚠️  INTENTIONALLY BROKEN LOCATOR — permanent AI healing demo fixture.
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    login_page.enter_username("standard_user")
-    # Assert wrong text to trigger classification
-    expect(login_page.loginPage_title()).to_contain_text("Incorrect AI Logo Name")
+    login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
 
+    # ⚠️  BROKEN locator for Backpack Add-to-Cart button — DO NOT FIX
+    page.locator("[data-test='add-to-cart-sauce-labs-backpack-broken']").click()  # BROKEN — DO NOT CHANGE
+
+    # After AI healing resolves correct button, cart badge should update
+    expect(page.locator(".shopping_cart_badge")).to_contain_text("1")
+
+
+# ──────────────────────────────────────────────
+# ❌ Failure Classification Demo  (ai branch)
+# ──────────────────────────────────────────────
+def test_ai_cart_assertion_failure(setup_teardown):
+    """
+    Demonstrates AI-branch failure classification for a cart page assertion mismatch.
+
+    Flow:
+        - Logs in, adds an item, navigates to the Cart page.
+        - Asserts an incorrect cart title ("My Basket") instead of "Your Cart".
+        - Triggers AssertionError classified as `Assertion` in failure summary.
+    """
+    page = setup_teardown
+    login_page = Loginpage(page)
+    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
+
+    inventory_page.click_addremove_to_cart("Sauce Labs Backpack")
+    cart_page = inventory_page.click_cart_btn()
+
+    # Intentional wrong assertion on cart page title
+    expect(cart_page.get_cart_page_title()).to_contain_text("My Basket")
+
+
+# ──────────────────────────────────────────────
+# 🎲 Flaky Test Detection  (ai branch)
+# ──────────────────────────────────────────────
 def test_ai_flaky_demo(setup_teardown):
     """
-    Demonstrates flaky test detection in the AI branch across retry attempts.
+    Simulates a flaky test in the AI branch that fails on runs 1–2, passes on run 3.
 
-    Args:
-        setup_teardown (HealingPage): Playwright page wrapped with Self-Healing Proxy.
+    Reads a persistent counter from /tmp to track state across pytest retries,
+    registering as `Flaky (detected)` in the Test Forge run summary.
     """
     count = 0
     if FLAKY_COUNTER_FILE_AI.exists():
@@ -65,10 +88,10 @@ def test_ai_flaky_demo(setup_teardown):
             count = int(FLAKY_COUNTER_FILE_AI.read_text().strip())
         except Exception:
             pass
-            
+
     count += 1
     FLAKY_COUNTER_FILE_AI.write_text(str(count))
-    
+
     if count < 3:
         assert False, f"Simulated AI flaky failure (Run {count}/3)"
     else:
@@ -78,33 +101,55 @@ def test_ai_flaky_demo(setup_teardown):
             pass
         assert True
 
-# 🟢 Clean Passing Tests using real POM on live Sauce Demo site
-def test_login_standard_user_pass(setup_teardown):
-    """
-    Verifies successful user authentication in AI suite.
 
-    Args:
-        setup_teardown (HealingPage): Playwright page wrapped with Self-Healing Proxy.
+# ──────────────────────────────────────────────
+# 🟢 Passing Demo Tests  (ai branch — unique flows)
+# ──────────────────────────────────────────────
+def test_full_checkout_flow(setup_teardown):
+    """
+    Verifies the complete e-commerce checkout flow from login to order completion.
+
+    Flow:
+        - Logs in as standard_user.
+        - Adds 'Sauce Labs Fleece Jacket' to cart.
+        - Navigates to Cart → Checkout → fills in details → continues to overview.
+        - Clicks Finish and asserts the success message "Thank you for your order!".
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    credentials = {"username": "standard_user", "password": "secret_sauce"}
-    inventory_page = login_page.do_login(credentials)
-    
-    expect(inventory_page.inventory_header).to_be_visible()
-    expect(inventory_page.inventory_header).to_contain_text("Products")
+    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
 
-def test_inventory_add_item_pass(setup_teardown):
+    inventory_page.click_addremove_to_cart("Sauce Labs Fleece Jacket")
+    cart_page = inventory_page.click_cart_btn()
+
+    expect(cart_page.get_cart_page_title()).to_contain_text("Your Cart")
+    expect(cart_page.get_cart_product_text()).to_contain_text("Sauce Labs Fleece Jacket")
+
+    checkout_page = cart_page.click_on_checkout()
+    checkout_page.enter_checkout_details("John", "Forge", "10001")
+    checkout_page.click_checkout_continue()
+
+    expect(checkout_page.get_checkout_overview()).to_contain_text("Checkout: Overview")
+
+    checkout_page.click_checkout_finish_btn()
+    expect(checkout_page.get_checkout_sucess()).to_contain_text("Thank you for your order!")
+
+
+def test_logout_redirects_to_login(setup_teardown):
     """
-    Verifies adding an item to cart in AI suite.
+    Verifies that logging out via the hamburger menu redirects back to the Login page.
 
-    Args:
-        setup_teardown (HealingPage): Playwright page wrapped with Self-Healing Proxy.
+    Flow:
+        - Logs in as standard_user.
+        - Opens the hamburger menu and clicks Logout.
+        - Asserts the login logo ("Swag Labs") is visible on the redirected page.
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    credentials = {"username": "standard_user", "password": "secret_sauce"}
-    inventory_page = login_page.do_login(credentials)
-    
-    inventory_page.click_addremove_to_cart("Sauce Labs Backpack")
-    expect(page.locator(".shopping_cart_badge")).to_contain_text("1")
+    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
+
+    inventory_page.logout()
+
+    # Should be back on login page
+    expect(page.locator("//div[@class='login_logo']")).to_contain_text("Swag Labs")
+    expect(page.locator("//input[@id='user-name']")).to_be_visible()
