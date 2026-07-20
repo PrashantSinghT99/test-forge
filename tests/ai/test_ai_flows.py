@@ -43,7 +43,7 @@ def test_inventory_add_to_cart_ai_healing(setup_teardown):
     login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
 
     # ⚠️  BROKEN locator for Backpack Add-to-Cart button — DO NOT FIX
-    page.locator("[data-test='add-to-cart-sauce-labs-backpack-broken']").click()  # BROKEN — DO NOT CHANGE
+    page.locator("//*[@id="add-to-cart-sauce-labs-backpack"]").click()  # BROKEN — DO NOT CHANGE
 
     # After AI healing resolves correct button, cart badge should update
     expect(page.locator(".shopping_cart_badge")).to_contain_text("1")
