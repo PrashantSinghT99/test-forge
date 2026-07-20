@@ -199,11 +199,35 @@ class RunReporter:
             except Exception as e:
                 print(f"[Reporter] Failed to parse JUnit for HTML: {e}")
 
+        # Process retry XML files to reflect tests that passed on retries
+        retry_xmls = sorted(self.reports_dir.glob("retry_*.xml"))
+        for rx in retry_xmls:
+            try:
+                r_tree = ET.parse(str(rx))
+                r_root = r_tree.getroot()
+                for r_tc in r_root.iter('testcase'):
+                    r_cls = r_tc.attrib.get('classname', '')
+                    r_name = r_tc.attrib.get('name', '')
+                    r_nodeid = f"{r_cls}::{r_name}"
+                    r_fail = r_tc.find('failure')
+                    if r_fail is None:
+                        r_fail = r_tc.find('error')
+                    if r_fail is None:
+                        for t in tests:
+                            if t['nodeid'] == r_nodeid or r_name in t['name']:
+                                if t['status'] == 'failed':
+                                    t['status'] = 'passed'
+                                    failed = max(0, failed - 1)
+                                    passed += 1
+            except Exception as e:
+                print(f"[Reporter] Failed to parse retry XML {rx}: {e}")
+
         healed_test_names = {h["test_name"] for h in healing_events}
         healed_count = len(healed_test_names)
         normal_passed = max(0, passed - healed_count)
         
         flaky_count = 0
+        history = {}
         try:
             from src.framework.core.flaky_detection import FlakyDetector
             flaky_db_path = self.reports_dir.parent / "flaky_history.json"

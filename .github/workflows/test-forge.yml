@@ -199,12 +199,9 @@ jobs:
           # Ensure index.html exists inside subfolders if pytest HTML reports are not directly visible
           # Find HTML file in subfolders and rename/create a link to it
           for branch in no_ai ai stagehand; do
-            cd reports/$branch || continue
-            HTML_FILE=$(find . -name "*.html" | head -n 1)
-            if [ -n "$HTML_FILE" ]; then
-              cp "$HTML_FILE" index.html
+            if [ -f "reports/$branch/report.html" ]; then
+              cp "reports/$branch/report.html" "reports/$branch/index.html"
             fi
-            cd ../..
           done
 
       - name: Upload Report to Pages
