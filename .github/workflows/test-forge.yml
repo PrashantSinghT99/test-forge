@@ -37,14 +37,14 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install dependencies
+        run: make install
+
       - name: Debug environment
         run: |
           python --version
           python -m pip show pytest
           python -c "import sys; print('Python:', sys.executable)"
-
-      - name: Install dependencies
-        run: make install
 
       - name: Install Playwright browsers
         run: make install-browsers
