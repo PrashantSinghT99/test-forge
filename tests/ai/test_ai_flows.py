@@ -11,13 +11,13 @@ Test Scenarios:
     4. [PASS]  Full checkout flow: login → add item → cart → checkout → complete
     5. [PASS]  Logout flow: verify redirect back to login after hamburger menu logout
 """
-import pytest
-from playwright.sync_api import expect
-from src.pages.LoginPage import Loginpage
-from src.pages.Inventory import Inventory
-from src.pages.Cart import Cart
+
 import tempfile
 from pathlib import Path
+
+from playwright.sync_api import expect
+
+from src.pages.LoginPage import Loginpage
 
 # Shared counter file for AI flaky-test state across pytest retry runs
 FLAKY_COUNTER_FILE_AI = Path(tempfile.gettempdir()) / "flaky_counter_ai.txt"
@@ -43,7 +43,9 @@ def test_inventory_add_to_cart_ai_healing(setup_teardown):
     login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
 
     # ⚠️  BROKEN locator for Backpack Add-to-Cart button — DO NOT FIX
-    page.locator("[data-test='add-to-cart-sauce-labs-backpack-broken']").click()  # BROKEN — DO NOT CHANGE
+    page.locator(
+        "[data-test='add-to-cart-sauce-labs-backpack-broken']"
+    ).click()  # BROKEN — DO NOT CHANGE
 
     # After AI healing resolves correct button, cart badge should update
     expect(page.locator(".shopping_cart_badge")).to_contain_text("1")
@@ -63,7 +65,9 @@ def test_ai_cart_assertion_failure(setup_teardown):
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
+    inventory_page = login_page.do_login(
+        {"username": "standard_user", "password": "secret_sauce"}
+    )
 
     inventory_page.click_addremove_to_cart("Sauce Labs Backpack")
     cart_page = inventory_page.click_cart_btn()
@@ -93,7 +97,7 @@ def test_ai_flaky_demo(setup_teardown):
     FLAKY_COUNTER_FILE_AI.write_text(str(count))
 
     if count < 3:
-        assert False, f"Simulated AI flaky failure (Run {count}/3)"
+        raise AssertionError(f"Simulated AI flaky failure (Run {count}/3)")
     else:
         try:
             FLAKY_COUNTER_FILE_AI.unlink()
@@ -117,13 +121,17 @@ def test_full_checkout_flow(setup_teardown):
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
+    inventory_page = login_page.do_login(
+        {"username": "standard_user", "password": "secret_sauce"}
+    )
 
     inventory_page.click_addremove_to_cart("Sauce Labs Fleece Jacket")
     cart_page = inventory_page.click_cart_btn()
 
     expect(cart_page.get_cart_page_title()).to_contain_text("Your Cart")
-    expect(cart_page.get_cart_product_text()).to_contain_text("Sauce Labs Fleece Jacket")
+    expect(cart_page.get_cart_product_text()).to_contain_text(
+        "Sauce Labs Fleece Jacket"
+    )
 
     checkout_page = cart_page.click_on_checkout()
     checkout_page.enter_checkout_details("John", "Forge", "10001")
@@ -132,7 +140,9 @@ def test_full_checkout_flow(setup_teardown):
     expect(checkout_page.get_checkout_overview()).to_contain_text("Checkout: Overview")
 
     checkout_page.click_checkout_finish_btn()
-    expect(checkout_page.get_checkout_sucess()).to_contain_text("Thank you for your order!")
+    expect(checkout_page.get_checkout_sucess()).to_contain_text(
+        "Thank you for your order!"
+    )
 
 
 def test_logout_redirects_to_login(setup_teardown):
@@ -146,7 +156,9 @@ def test_logout_redirects_to_login(setup_teardown):
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
+    inventory_page = login_page.do_login(
+        {"username": "standard_user", "password": "secret_sauce"}
+    )
 
     inventory_page.logout()
 

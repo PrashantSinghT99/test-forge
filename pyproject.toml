@@ -24,6 +24,9 @@ test = [
   "pytest-playwright==0.6.2",
   "pytest-xdist==3.6.1",
 ]
+dev = [
+  "ruff>=0.5.0",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/PrashantSinghT99/test-forge"
@@ -36,3 +39,22 @@ addopts = "-ra -q"
 python_files = ["test_*.py"]
 pythonpath = ["."]
 
+[tool.ruff]
+# Target Python 3.10+
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable: pycodestyle (E/W), pyflakes (F), isort (I), bugbear (B)
+select = ["E", "W", "F", "I", "B"]
+ignore = [
+  "E501",   # line too long — handled by formatter
+  "B008",   # function calls in default args (common in pytest fixtures)
+  "B904",   # raise from inside except — not always applicable
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

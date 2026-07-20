@@ -2,7 +2,6 @@ from src.pages.Inventory import Inventory
 
 
 class Loginpage:
-
     def __init__(self, page):
         self.page = page
         self._username_locator = page.locator("//input[@id='user-name']")
@@ -23,8 +22,8 @@ class Loginpage:
         self._login_btn_locator.click()
 
     def do_login(self, credentials):
-        self._username_locator.fill(credentials['username'])
-        self._password_locator.fill(credentials['password'])
+        self._username_locator.fill(credentials["username"])
+        self._password_locator.fill(credentials["password"])
         self.click_loginbtn()
         return Inventory(self.page)
 

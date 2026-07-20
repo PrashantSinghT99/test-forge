@@ -1,5 +1,6 @@
 import pytest
 from playwright.sync_api import expect
+
 from src.pages.LoginPage import Loginpage
 
 
@@ -13,8 +14,9 @@ def test_add_to_cart(setup_teardown):
     expect(inventory_page.inventory_header).to_contain_text("Products")
     product_name = "Sauce Labs Backpack"
     inventory_page.click_addremove_to_cart(product_name)
-    expect(inventory_page.get_addremove_to_cart_btn(
-        product_name)).to_contain_text("Remove")
+    expect(inventory_page.get_addremove_to_cart_btn(product_name)).to_contain_text(
+        "Remove"
+    )
 
 
 @pytest.mark.sanity
@@ -26,5 +28,6 @@ def test_remove_to_cart(setup_teardown):
     product_name = "Sauce Labs Backpack"
     inventory_page.click_addremove_to_cart(product_name)
     inventory_page.click_addremove_to_cart(product_name)
-    expect(inventory_page.get_addremove_to_cart_btn(
-        product_name)).to_contain_text("Add to cart")
+    expect(inventory_page.get_addremove_to_cart_btn(product_name)).to_contain_text(
+        "Add to cart"
+    )

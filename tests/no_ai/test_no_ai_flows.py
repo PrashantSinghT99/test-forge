@@ -11,12 +11,13 @@ Test Scenarios:
     4. [PASS]  Inventory product sort by price (low to high)
     5. [PASS]  Add multiple items and verify cart badge count
 """
-import pytest
-from playwright.sync_api import expect
-from src.pages.LoginPage import Loginpage
-from src.pages.Inventory import Inventory
+
 import tempfile
 from pathlib import Path
+
+from playwright.sync_api import expect
+
+from src.pages.LoginPage import Loginpage
 
 # Shared counter file to track flaky-test state across pytest retry runs
 FLAKY_COUNTER_FILE = Path(tempfile.gettempdir()) / "flaky_counter_no_ai.txt"
@@ -37,7 +38,9 @@ def test_login_healing_standard_user(setup_teardown):
     """
     page = setup_teardown
     # ⚠️  INTENTIONALLY BROKEN — keeps the self-healing demo alive on every CI run
-    page.locator("//input[@id='user-name-broken']").fill("standard_user")  # BROKEN — DO NOT CHANGE
+    page.locator("//input[@id='user-name-broken']").fill(
+        "standard_user"
+    )  # BROKEN — DO NOT CHANGE
 
     login_page = Loginpage(page)
     login_page.enter_password("secret_sauce")
@@ -83,7 +86,7 @@ def test_flaky_demo(setup_teardown):
     FLAKY_COUNTER_FILE.write_text(str(count))
 
     if count < 3:
-        assert False, f"Simulated flaky failure (Run {count}/3)"
+        raise AssertionError(f"Simulated flaky failure (Run {count}/3)")
     else:
         try:
             FLAKY_COUNTER_FILE.unlink()
@@ -129,7 +132,9 @@ def test_cart_shows_correct_item_count(setup_teardown):
     """
     page = setup_teardown
     login_page = Loginpage(page)
-    inventory_page = login_page.do_login({"username": "standard_user", "password": "secret_sauce"})
+    inventory_page = login_page.do_login(
+        {"username": "standard_user", "password": "secret_sauce"}
+    )
 
     inventory_page.click_addremove_to_cart("Sauce Labs Backpack")
     inventory_page.click_addremove_to_cart("Sauce Labs Bike Light")

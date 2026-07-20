@@ -4,15 +4,17 @@ Test Execution Orchestrator and Pipeline Manager.
 Coordinates pytest test runs, retry loops for failed tests, branch environment scoping,
 temporary file cleanup, and reporter summary generation.
 """
-import uuid
-import time
+
 import json
-import subprocess
-import platform
 import os
-import sys
-from pathlib import Path
+import platform
 import shutil
+import subprocess
+import sys
+import time
+import uuid
+from pathlib import Path
+
 from reporter import RunReporter
 
 ROOT = Path(__file__).parent
@@ -22,10 +24,12 @@ VIDEOS = ROOT / "videos"
 SCREENSHOTS = ROOT / "screenshots"
 SESSION_DIR = ROOT / "session"
 
+
 def ensure_dirs():
     """Ensures required output directories exist."""
     for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS, SESSION_DIR):
         d.mkdir(parents=True, exist_ok=True)
+
 
 def clear_previous(branch: str = None):
     """Cleans up previous execution outputs for the specified branch without wiping sibling branch reports."""
@@ -56,7 +60,10 @@ def clear_previous(branch: str = None):
                     except Exception:
                         pass
 
-def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extra_opts: dict):
+
+def run_pytest(
+    test_args, html_path: Path, junit_path: Path, parallel: int, extra_opts: dict
+):
     """
     Executes a pytest subprocess command with configured flags and environment variables.
 
@@ -70,10 +77,22 @@ def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extr
     Returns:
         tuple[int, float]: Tuple of (return_code, duration_in_seconds).
     """
-    cmd = [sys.executable, "-m", "pytest"] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
+    cmd = (
+        [sys.executable, "-m", "pytest"]
+        + test_args
+        + [f"--html={html_path}", "--self-contained-html", f"--junitxml={junit_path}"]
+    )
     if parallel and parallel > 0:
-        cmd = [sys.executable, "-m", "pytest", "-n", str(parallel)] + test_args + [f"--html={html_path}", f"--self-contained-html", f"--junitxml={junit_path}"]
-        
+        cmd = (
+            [sys.executable, "-m", "pytest", "-n", str(parallel)]
+            + test_args
+            + [
+                f"--html={html_path}",
+                "--self-contained-html",
+                f"--junitxml={junit_path}",
+            ]
+        )
+
     if extra_opts.get("branch"):
         cmd.append(f"--branch={extra_opts['branch']}")
     if extra_opts.get("flaky_db"):
@@ -84,19 +103,20 @@ def run_pytest(test_args, html_path: Path, junit_path: Path, parallel: int, extr
         cmd.append("--self-heal")
     if extra_opts.get("ai_model"):
         cmd.append(f"--ai-model={extra_opts['ai_model']}")
-        
+
     # Pass branch to subprocess via env so healer.py knows where to write screenshots
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT)
     if extra_opts.get("branch"):
         env["PYTEST_BRANCH"] = extra_opts["branch"]
-        
+
     print("Running command:", " ".join(cmd))
     print("Working directory:", str(ROOT))
     start = time.time()
     res = subprocess.run(cmd, env=env, cwd=str(ROOT))
     duration = time.time() - start
     return res.returncode, duration
+
 
 def execute_run(options: dict):
     ensure_dirs()
@@ -105,8 +125,8 @@ def execute_run(options: dict):
         clear_previous(branch=branch)
 
     run_id = uuid.uuid4().hex[:8]
-    session_file = SESSION_DIR / f'session_{run_id}.json'
-    
+    session_file = SESSION_DIR / f"session_{run_id}.json"
+
     # branch already resolved above
     path = options.get("path", ".")
     pattern = options.get("pattern", "test_*.py")
@@ -115,7 +135,7 @@ def execute_run(options: dict):
     resume = options.get("resume", False)
     markers = options.get("markers")
     kexpr = options.get("kexpr")
-    
+
     self_heal = options.get("self_heal", False)
     classify = options.get("classify", False)
     flaky_db = options.get("flaky_db", "reports/flaky_history.json")
@@ -130,32 +150,32 @@ def execute_run(options: dict):
             path = "tests/stagehand"
 
     base_path = Path(path)
-    
+
     if resume:
-        last = sorted(SESSION_DIR.glob('session_*.json'))
+        last = sorted(SESSION_DIR.glob("session_*.json"))
         if not last:
-            print('No previous session found to resume')
+            print("No previous session found to resume")
             return
         session_file = last[-1]
         with open(session_file) as fh:
             state = json.load(fh)
-        nodeids = state.get('failed_nodeids', [])
+        nodeids = state.get("failed_nodeids", [])
         if not nodeids:
-            print('No failed tests in last session')
+            print("No failed tests in last session")
             return
-        print(f'Rerunning {len(nodeids)} failed tests from {session_file}')
-        html = REPORTS / f'rerun_{session_file.stem}.html'
-        junit = REPORTS / f'rerun_{session_file.stem}.xml'
-        
+        print(f"Rerunning {len(nodeids)} failed tests from {session_file}")
+        html = REPORTS / f"rerun_{session_file.stem}.html"
+        junit = REPORTS / f"rerun_{session_file.stem}.xml"
+
         extra_opts = {
             "branch": branch or state.get("env", {}).get("branch", "no_ai"),
             "flaky_db": flaky_db,
             "classify": classify,
             "self_heal": self_heal,
-            "ai_model": ai_model
+            "ai_model": ai_model,
         }
         rc, duration = run_pytest(nodeids, html, junit, parallel, extra_opts)
-        print('Rerun complete. See reports.')
+        print("Rerun complete. See reports.")
         return
 
     if base_path.is_file():
@@ -177,15 +197,15 @@ def execute_run(options: dict):
     branch_dir.mkdir(parents=True, exist_ok=True)
     html = branch_dir / "report.html"
     junit = branch_dir / "report.xml"
-    
+
     extra_opts = {
         "branch": branch,
         "flaky_db": flaky_db,
         "classify": classify,
         "self_heal": self_heal,
-        "ai_model": ai_model
+        "ai_model": ai_model,
     }
-    
+
     pytest_class_path = REPORTS / "pytest_classifications.json"
     pytest_heal_path = REPORTS / "pytest_healing.json"
     for p in (pytest_class_path, pytest_heal_path):
@@ -196,39 +216,45 @@ def execute_run(options: dict):
                 pass
 
     rc, duration = run_pytest(test_args, html, junit, parallel, extra_opts)
-    
-    from runner import parse_junit, failed_nodeids_from_junit, collect_videos_map, inject_videos_into_pytest_html
+
+    from runner import (
+        collect_videos_map,
+        failed_nodeids_from_junit,
+        inject_videos_into_pytest_html,
+        parse_junit,
+    )
+
     stats = parse_junit(junit)
     failed_nodeids = failed_nodeids_from_junit(junit)
 
     session_state = {
-        'run_id': run_id,
-        'stats': stats,
-        'failed_nodeids': failed_nodeids,
-        'duration': duration,
-        'env': {
-            'platform': platform.platform(),
-            'python': platform.python_version(),
-            'branch': branch
-        }
+        "run_id": run_id,
+        "stats": stats,
+        "failed_nodeids": failed_nodeids,
+        "duration": duration,
+        "env": {
+            "platform": platform.platform(),
+            "python": platform.python_version(),
+            "branch": branch,
+        },
     }
-    with open(session_file, 'w') as fh:
+    with open(session_file, "w") as fh:
         json.dump(session_state, fh, indent=2)
 
     attempt = 0
     while retries > 0 and failed_nodeids:
         attempt += 1
-        print(f'\nRetry attempt {attempt} for {len(failed_nodeids)} failed tests')
-        html_r = branch_dir / f'retry_{run_id}_{attempt}.html'
-        junit_r = branch_dir / f'retry_{run_id}_{attempt}.xml'
+        print(f"\nRetry attempt {attempt} for {len(failed_nodeids)} failed tests")
+        html_r = branch_dir / f"retry_{run_id}_{attempt}.html"
+        junit_r = branch_dir / f"retry_{run_id}_{attempt}.xml"
         rc2, dur2 = run_pytest(failed_nodeids, html_r, junit_r, parallel, extra_opts)
         parsed2 = parse_junit(junit_r)
-        
+
         failed_nodeids = failed_nodeids_from_junit(junit_r)
         retries -= 1
-        session_state['failed_nodeids'] = failed_nodeids
-        session_state['stats_retry_' + str(attempt)] = parsed2
-        with open(session_file, 'w') as fh:
+        session_state["failed_nodeids"] = failed_nodeids
+        session_state["stats_retry_" + str(attempt)] = parsed2
+        with open(session_file, "w") as fh:
             json.dump(session_state, fh, indent=2)
 
     classifications = {}
@@ -238,7 +264,7 @@ def execute_run(options: dict):
                 classifications = json.load(f)
         except Exception:
             pass
-            
+
     healing_events = []
     if pytest_heal_path.exists():
         try:
@@ -251,48 +277,52 @@ def execute_run(options: dict):
     summary = reporter.generate_summary(stats, healing_events, Path(flaky_db))
     reporter.save_failure_classifications(classifications)
     reporter.generate_healing_patch(healing_events)
-    reporter.generate_beautiful_html(html, junit, healing_events, classifications, branch or "default")
+    reporter.generate_beautiful_html(
+        html, junit, healing_events, classifications, branch or "default"
+    )
     reporter.make_chart(stats, title=f"Run {run_id} ({branch or 'default'})")
 
     try:
         videos_map = collect_videos_map(VIDEOS)
         inject_videos_into_pytest_html(html, videos_map, failed_nodeids)
     except Exception as e:
-        print('Failed to inject videos into report:', e)
+        print("Failed to inject videos into report:", e)
 
-    print("\n" + "="*40)
+    print("\n" + "=" * 40)
     print(f" RUN SUMMARY (ID: {run_id})")
-    print("="*40)
+    print("=" * 40)
     print(f"Total Tests run:  {summary['total']}")
-    
+
     healed_tests_names = {h["test_name"] for h in healing_events}
     passed_healed_count = len(healed_tests_names)
     normal_passed_count = max(0, summary["passed"] - passed_healed_count)
-    
+
     print(f"Passed:           {normal_passed_count}")
     print(f"Passed (healed):  {passed_healed_count}")
     print(f"Failed:           {summary['failed']}")
     print(f"Skipped:          {summary['skipped']}")
     print(f"Flaky (detected): {summary['flaky']}")
-    print("="*40)
-    
+    print("=" * 40)
+
     if classifications:
         print("\nFailures by Classification:")
         cats = {}
-        for test_name, c in classifications.items():
+        for _test_name, c in classifications.items():
             cat = c.get("category", "Other")
             cats[cat] = cats.get(cat, 0) + 1
         for cat, count in cats.items():
             print(f"  - {cat}: {count}")
-            
+
     if healing_events:
         print("\nSelf-Healing Actions taken:")
         for h in healing_events:
-            print(f"  - Test '{h['test_name']}': Healed locator '{h['original_selector']}' using '{h['healed_selector']}' on '{h['action']}'")
+            print(
+                f"  - Test '{h['test_name']}': Healed locator '{h['original_selector']}' using '{h['healed_selector']}' on '{h['action']}'"
+            )
 
     print(f"\nHTML Report: {html}")
     print(f"Unified JSON: {branch_dir / 'run_summary.json'}")
-    print("="*40)
+    print("=" * 40)
 
     # Clean up temporary retry files to keep directory clean
     for p in branch_dir.glob("retry_*"):

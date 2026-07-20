@@ -1,21 +1,35 @@
-import pytest
-from playwright.sync_api import Playwright, Locator
+import json
+import shutil
 import uuid
 from pathlib import Path
-import shutil
-import os
-import json
 
-from src.framework.core.flaky_detection import FlakyDetector, FileLock
+import pytest
+from playwright.sync_api import Playwright
+
 from src.framework.core.failure_classification import classify_failure
+from src.framework.core.flaky_detection import FileLock, FlakyDetector
 from src.framework.no_ai.healer import HealingPage
 
+
 def pytest_addoption(parser):
-    parser.addoption("--branch", action="store", default=None, help="Target branch folder")
-    parser.addoption("--flaky-db", action="store", default="reports/flaky_history.json", help="Path to flaky database")
-    parser.addoption("--classify", action="store_true", help="Enable failure classification")
-    parser.addoption("--self-heal", action="store_true", help="Enable self-healing locators")
-    parser.addoption("--ai-model", action="store", default=None, help="AI model for healing")
+    parser.addoption(
+        "--branch", action="store", default=None, help="Target branch folder"
+    )
+    parser.addoption(
+        "--flaky-db",
+        action="store",
+        default="reports/flaky_history.json",
+        help="Path to flaky database",
+    )
+    parser.addoption(
+        "--classify", action="store_true", help="Enable failure classification"
+    )
+    parser.addoption(
+        "--self-heal", action="store_true", help="Enable self-healing locators"
+    )
+    parser.addoption(
+        "--ai-model", action="store", default=None, help="AI model for healing"
+    )
 
 
 @pytest.fixture(scope="function")
@@ -25,7 +39,7 @@ def setup_teardown(playwright: Playwright, request):
     videos_dir = repo_root / "videos"
     logs_dir = repo_root / "logs"
     screenshots_dir = repo_root / "screenshots"
-    
+
     videos_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
     screenshots_dir.mkdir(parents=True, exist_ok=True)
@@ -43,15 +57,15 @@ def setup_teardown(playwright: Playwright, request):
     self_heal = request.config.getoption("--self-heal")
     branch = request.config.getoption("--branch")
     ai_model = request.config.getoption("--ai-model")
-    
-    use_ai = (branch == "ai" or ai_model is not None)
-    
+
+    use_ai = branch == "ai" or ai_model is not None
+
     wrapped_page = HealingPage(
-        page, 
-        test_name=request.node.nodeid, 
-        enabled=self_heal, 
-        use_ai=use_ai, 
-        max_attempts=3
+        page,
+        test_name=request.node.nodeid,
+        enabled=self_heal,
+        use_ai=use_ai,
+        max_attempts=3,
     )
 
     request.node._video_dir = per_test_video_dir
@@ -63,12 +77,12 @@ def setup_teardown(playwright: Playwright, request):
         page.screenshot(path=str(screenshots_dir / f"snapshots_{unique_id}.png"))
     except Exception:
         pass
-        
+
     try:
         context.tracing.stop(path=str(logs_dir / f"tracing_{unique_id}.zip"))
     except Exception:
         pass
-        
+
     context.close()
     browser.close()
 
@@ -95,21 +109,23 @@ def setup_teardown(playwright: Playwright, request):
     # collect video files
     vids = []
     if per_test_video_dir.exists():
-        for p in per_test_video_dir.rglob('*'):
+        for p in per_test_video_dir.rglob("*"):
             if p.is_file():
                 vids.append(p)
     request.node._video_paths = vids
     try:
-        meta = {'nodeid': request.node.nodeid}
-        (per_test_video_dir / 'metadata.json').write_text(json.dumps(meta))
+        meta = {"nodeid": request.node.nodeid}
+        (per_test_video_dir / "metadata.json").write_text(json.dumps(meta))
     except Exception:
         pass
 
+
 # Define paths for clear session fixture
 REPO_ROOT = Path(__file__).parents[1]
-VIDEOS_DIR = REPO_ROOT / 'videos'
-SCREENSHOTS_DIR = REPO_ROOT / 'screenshots'
-LOGS_DIR = REPO_ROOT / 'logs'
+VIDEOS_DIR = REPO_ROOT / "videos"
+SCREENSHOTS_DIR = REPO_ROOT / "screenshots"
+LOGS_DIR = REPO_ROOT / "logs"
+
 
 def clear_directory(directory: Path):
     if directory.exists():
@@ -120,12 +136,14 @@ def clear_directory(directory: Path):
                 elif child.is_dir():
                     shutil.rmtree(child)
             except Exception as e:
-                print(f'Failed to delete {child}. Reason: {e}')
+                print(f"Failed to delete {child}. Reason: {e}")
 
-@pytest.fixture(scope='session', autouse=True)
+
+@pytest.fixture(scope="session", autouse=True)
 def clear_videos_and_screenshots():
     for d in (VIDEOS_DIR, SCREENSHOTS_DIR, LOGS_DIR):
         clear_directory(d)
+
 
 def _rel_path_from_reports(p: Path):
     try:
@@ -133,18 +151,19 @@ def _rel_path_from_reports(p: Path):
     except Exception:
         return str(p)
 
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
-    
+
     config = item.config
     flaky_db = config.getoption("--flaky-db")
     classify = config.getoption("--classify")
-    
-    if rep.when == 'call':
+
+    if rep.when == "call":
         test_id = item.nodeid
-        
+
         # 1. Record pass/fail outcome to flaky history
         if flaky_db:
             try:
@@ -153,15 +172,15 @@ def pytest_runtest_makereport(item, call):
                 detector.record_result(test_id, rep.outcome)
             except Exception as e:
                 print(f"[conftest] Error recording flaky result: {e}")
-                
+
         # 2. Failure Classification
         if rep.failed and classify:
             exc_type = call.excinfo.type.__name__ if call.excinfo else "Unknown"
             exc_msg = str(call.excinfo.value) if call.excinfo else ""
             tb_str = str(call.excinfo.traceback) if call.excinfo else ""
-            
+
             result = classify_failure(exc_type, exc_msg, tb_str)
-            
+
             class_path = Path("reports/pytest_classifications.json")
             class_path.parent.mkdir(parents=True, exist_ok=True)
             lock_path = str(class_path) + ".lock"
@@ -181,8 +200,8 @@ def pytest_runtest_makereport(item, call):
                 print(f"[conftest] Error writing classification: {e}")
 
     # Attach video link to HTML report
-    if rep.when == 'call' and rep.failed:
-        video_paths = getattr(item, '_video_paths', None)
+    if rep.when == "call" and rep.failed:
+        video_paths = getattr(item, "_video_paths", None)
         if not video_paths:
             return
         try:
@@ -190,9 +209,11 @@ def pytest_runtest_makereport(item, call):
         except Exception:
             extras = None
         if extras:
-            extra = getattr(rep, 'extra', [])
+            extra = getattr(rep, "extra", [])
             for vp in video_paths:
                 rel = _rel_path_from_reports(vp)
                 link = f"{rel}"
-                extra.append(extras.html(f'<p>Video: <a href="{link}">{vp.name}</a></p>'))
+                extra.append(
+                    extras.html(f'<p>Video: <a href="{link}">{vp.name}</a></p>')
+                )
             rep.extra = extra

@@ -2,8 +2,10 @@
 Generates the Test Forge QA Intelligence Dashboard index.html for GitHub Pages.
 Called from the CI/CD deploy-report job after reports are consolidated.
 """
+
 import sys
 from pathlib import Path
+
 
 def make_dashboard(reports_dir: str = "reports"):
     out = Path(reports_dir) / "index.html"
@@ -57,6 +59,7 @@ def make_dashboard(reports_dir: str = "reports"):
 </html>"""
     out.write_text(html, encoding="utf-8")
     print(f"Dashboard written to {out}")
+
 
 if __name__ == "__main__":
     reports_dir = sys.argv[1] if len(sys.argv) > 1 else "reports"

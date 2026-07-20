@@ -1,5 +1,6 @@
 import pytest
 from playwright.sync_api import expect
+
 from src.pages.LoginPage import Loginpage
 
 
@@ -12,4 +13,4 @@ def test_logout_standard_user(setup_teardown) -> None:
     expect(inventory_page.inventory_header).to_be_visible()
     expect(inventory_page.inventory_header).to_contain_text("Products")
     inventory_page.logout()
-    expect(login_page.loginPage_title()).to_contain_text('Swag Labs')
+    expect(login_page.loginPage_title()).to_contain_text("Swag Labs")

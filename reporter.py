@@ -4,18 +4,20 @@ Unified Test Run Reporter and Dashboard Generator.
 Parses test metrics, JUnit XML artifacts, failure classifications, and self-healing logs.
 Generates glassmorphic HTML dashboards with Base64 embedded screenshots and Git diff patches.
 """
+
 import json
-from pathlib import Path
-import os
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 REPORTS = Path("reports")
 REPORTS.mkdir(parents=True, exist_ok=True)
+
 
 class RunReporter:
     """
     Consolidates session data and generates reports, patches, and unified JSON summaries.
     """
+
     def __init__(self, run_id: str, reports_dir: Path, schema_version: str = "1.0"):
         """
         Initialize the RunReporter.
@@ -30,7 +32,9 @@ class RunReporter:
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         self.schema_version = schema_version
 
-    def generate_summary(self, stats: dict, healing_events: list, flaky_db_path: Path) -> dict:
+    def generate_summary(
+        self, stats: dict, healing_events: list, flaky_db_path: Path
+    ) -> dict:
         """
         Aggregates run statistics, healing counts, and flaky test metrics into a JSON summary.
 
@@ -45,10 +49,11 @@ class RunReporter:
         passed = stats.get("passed", 0)
         failed = stats.get("failed", 0)
         skipped = stats.get("skipped", 0)
-        
+
         flaky_count = 0
         try:
             from src.framework.core.flaky_detection import FlakyDetector
+
             detector = FlakyDetector(flaky_db_path)
             history = detector.load_history()
             for test_id in history:
@@ -56,9 +61,9 @@ class RunReporter:
                     flaky_count += 1
         except Exception as e:
             print(f"[Reporter] Error reading flaky database for summary: {e}")
-                
+
         healed_count = len(healing_events)
-        
+
         summary = {
             "schema_version": self.schema_version,
             "run_id": self.run_id,
@@ -68,9 +73,9 @@ class RunReporter:
             "skipped": skipped,
             "flaky": flaky_count,
             "healed": healed_count,
-            "healing_events": healing_events
+            "healing_events": healing_events,
         }
-        
+
         summary_path = self.reports_dir / "run_summary.json"
         try:
             with open(summary_path, "w", encoding="utf-8") as f:
@@ -78,7 +83,7 @@ class RunReporter:
             print(f"[Reporter] Unified summary written to {summary_path}")
         except Exception as e:
             print(f"[Reporter] Failed to write run summary: {e}")
-            
+
         return summary
 
     def save_failure_classifications(self, classifications: dict):
@@ -87,7 +92,7 @@ class RunReporter:
         data = {
             "schema_version": self.schema_version,
             "run_id": self.run_id,
-            "classifications": classifications
+            "classifications": classifications,
         }
         try:
             with open(class_path, "w", encoding="utf-8") as f:
@@ -107,12 +112,12 @@ class RunReporter:
                 file_path = Path(__file__).parent / file_path_str
             if not file_path.exists():
                 continue
-                
+
             orig = event.get("original_selector")
             healed = event.get("healed_selector")
             if not orig or not healed:
                 continue
-                
+
             try:
                 content = file_path.read_text(encoding="utf-8")
                 if orig in content:
@@ -124,78 +129,93 @@ class RunReporter:
                             start_ctx = max(0, i - 2)
                             end_ctx = min(len(lines), i + 3)
                             ctx_before = lines[start_ctx:i]
-                            ctx_after = lines[i+1:end_ctx]
+                            ctx_after = lines[i + 1 : end_ctx]
                             hunk_len = len(ctx_before) + 1 + len(ctx_after)
-                            
-                            diff_hunk.append(f"@@ -{start_ctx+1},{hunk_len} +{start_ctx+1},{hunk_len} @@")
-                            for l in ctx_before:
-                                diff_hunk.append(f" {l}")
+
+                            diff_hunk.append(
+                                f"@@ -{start_ctx + 1},{hunk_len} +{start_ctx + 1},{hunk_len} @@"
+                            )
+                            for ctx_line in ctx_before:
+                                diff_hunk.append(f" {ctx_line}")
                             diff_hunk.append(f"-{line}")
                             diff_hunk.append(f"+{new_line}")
-                            for l in ctx_after:
-                                diff_hunk.append(f" {l}")
-                    
+                            for ctx_line in ctx_after:
+                                diff_hunk.append(f" {ctx_line}")
+
                     if diff_hunk:
-                        patch_lines.append(f"diff --git a/{file_path_str} b/{file_path_str}")
+                        patch_lines.append(
+                            f"diff --git a/{file_path_str} b/{file_path_str}"
+                        )
                         patch_lines.append(f"--- a/{file_path_str}")
                         patch_lines.append(f"+++ b/{file_path_str}")
                         patch_lines.extend(diff_hunk)
                         patch_lines.append("")
             except Exception as e:
                 print(f"[Reporter] Patch generation failed for {file_path_str}: {e}")
-                
+
         if patch_lines:
             patch_path = self.reports_dir / "healing_patch.diff"
             try:
-                patch_path.write_text("\n".join(patch_lines) + "\n", encoding="utf-8", newline="\n")
+                patch_path.write_text(
+                    "\n".join(patch_lines) + "\n", encoding="utf-8", newline="\n"
+                )
                 print(f"[Reporter] Healing patch/PR suggestion written to {patch_path}")
             except Exception as e:
                 print(f"[Reporter] Failed to write patch file: {e}")
 
-    def generate_beautiful_html(self, html_path: Path, junit_path: Path, healing_events: list, classifications: dict, branch: str):
+    def generate_beautiful_html(
+        self,
+        html_path: Path,
+        junit_path: Path,
+        healing_events: list,
+        classifications: dict,
+        branch: str,
+    ):
         tests = []
         duration = 0.0
         passed = failed = skipped = 0
-        
+
         if junit_path.exists():
             try:
                 tree = ET.parse(str(junit_path))
                 root = tree.getroot()
-                for tc in root.iter('testcase'):
-                    classname = tc.attrib.get('classname', '')
-                    name = tc.attrib.get('name', '')
-                    tc_time = float(tc.attrib.get('time', '0'))
+                for tc in root.iter("testcase"):
+                    classname = tc.attrib.get("classname", "")
+                    name = tc.attrib.get("name", "")
+                    tc_time = float(tc.attrib.get("time", "0"))
                     duration += tc_time
-                    
-                    status = 'passed'
-                    failure_msg = ''
-                    traceback = ''
-                    
-                    fail_node = tc.find('failure')
+
+                    status = "passed"
+                    failure_msg = ""
+                    traceback = ""
+
+                    fail_node = tc.find("failure")
                     if fail_node is None:
-                        fail_node = tc.find('error')
-                    skip_node = tc.find('skipped')
-                    
+                        fail_node = tc.find("error")
+                    skip_node = tc.find("skipped")
+
                     if fail_node is not None:
-                        status = 'failed'
+                        status = "failed"
                         failed += 1
-                        failure_msg = fail_node.attrib.get('message', '')
-                        traceback = fail_node.text or ''
+                        failure_msg = fail_node.attrib.get("message", "")
+                        traceback = fail_node.text or ""
                     elif skip_node is not None:
-                        status = 'skipped'
+                        status = "skipped"
                         skipped += 1
                     else:
                         passed += 1
-                        
-                    tests.append({
-                        'nodeid': f"{classname}::{name}",
-                        'name': name,
-                        'classname': classname,
-                        'time': tc_time,
-                        'status': status,
-                        'failure_msg': failure_msg,
-                        'traceback': traceback
-                    })
+
+                    tests.append(
+                        {
+                            "nodeid": f"{classname}::{name}",
+                            "name": name,
+                            "classname": classname,
+                            "time": tc_time,
+                            "status": status,
+                            "failure_msg": failure_msg,
+                            "traceback": traceback,
+                        }
+                    )
             except Exception as e:
                 print(f"[Reporter] Failed to parse JUnit for HTML: {e}")
 
@@ -205,18 +225,18 @@ class RunReporter:
             try:
                 r_tree = ET.parse(str(rx))
                 r_root = r_tree.getroot()
-                for r_tc in r_root.iter('testcase'):
-                    r_cls = r_tc.attrib.get('classname', '')
-                    r_name = r_tc.attrib.get('name', '')
+                for r_tc in r_root.iter("testcase"):
+                    r_cls = r_tc.attrib.get("classname", "")
+                    r_name = r_tc.attrib.get("name", "")
                     r_nodeid = f"{r_cls}::{r_name}"
-                    r_fail = r_tc.find('failure')
+                    r_fail = r_tc.find("failure")
                     if r_fail is None:
-                        r_fail = r_tc.find('error')
+                        r_fail = r_tc.find("error")
                     if r_fail is None:
                         for t in tests:
-                            if t['nodeid'] == r_nodeid or r_name in t['name']:
-                                if t['status'] == 'failed':
-                                    t['status'] = 'passed'
+                            if t["nodeid"] == r_nodeid or r_name in t["name"]:
+                                if t["status"] == "failed":
+                                    t["status"] = "passed"
                                     failed = max(0, failed - 1)
                                     passed += 1
             except Exception as e:
@@ -225,22 +245,23 @@ class RunReporter:
         healed_test_names = {h["test_name"] for h in healing_events}
         healed_count = len(healed_test_names)
         normal_passed = max(0, passed - healed_count)
-        
+
         flaky_count = 0
         history = {}
         try:
             from src.framework.core.flaky_detection import FlakyDetector
+
             flaky_db_path = self.reports_dir.parent / "flaky_history.json"
             detector = FlakyDetector(flaky_db_path)
             history = detector.load_history()
             for t_id in history:
                 if detector.is_flaky(t_id):
                     # Only count flaky if it ran in this test set
-                    if any(t['nodeid'] in t_id or t_id in t['nodeid'] for t in tests):
+                    if any(t["nodeid"] in t_id or t_id in t["nodeid"] for t in tests):
                         flaky_count += 1
         except Exception:
             pass
-            
+
         patch_content = ""
         patch_path = self.reports_dir / "healing_patch.diff"
         if patch_path.exists():
@@ -248,21 +269,24 @@ class RunReporter:
                 patch_content = patch_path.read_text(encoding="utf-8")
             except Exception:
                 pass
-                
+
         class_stats = {}
-        for tc_id, c in classifications.items():
+        for _tc_id, c in classifications.items():
             cat = c.get("category", "Other")
             class_stats[cat] = class_stats.get(cat, 0) + 1
 
         test_list_html = ""
         for idx, t in enumerate(tests):
-            nodeid = t['nodeid']
+            nodeid = t["nodeid"]
             status_badge = ""
-            is_healed = any(h_name in nodeid or nodeid in h_name for h_name in healed_test_names)
-            
+            is_healed = any(
+                h_name in nodeid or nodeid in h_name for h_name in healed_test_names
+            )
+
             is_flaky = False
             try:
                 from src.framework.core.flaky_detection import FlakyDetector
+
                 flaky_db_path = self.reports_dir.parent / "flaky_history.json"
                 detector = FlakyDetector(flaky_db_path)
                 for t_id in history:
@@ -271,38 +295,38 @@ class RunReporter:
                         break
             except Exception:
                 pass
-                
+
             if is_healed:
                 status_badge = '<span class="badge badge-heal">PASSED (healed)</span>'
-            elif is_flaky and t['status'] == 'passed':
+            elif is_flaky and t["status"] == "passed":
                 status_badge = '<span class="badge badge-flaky">FLAKY (passed)</span>'
-            elif t['status'] == 'failed':
+            elif t["status"] == "failed":
                 status_badge = '<span class="badge badge-fail">FAILED</span>'
             else:
                 status_badge = '<span class="badge badge-pass">PASSED</span>'
-                
+
             details_html = ""
             click_handler = ""
-            if t['status'] == 'failed' and t['traceback']:
+            if t["status"] == "failed" and t["traceback"]:
                 details_id = f"details_{idx}"
-                escaped_tb = t['traceback'].replace('<', '&lt;').replace('>', '&gt;')
+                escaped_tb = t["traceback"].replace("<", "&lt;").replace(">", "&gt;")
                 details_html = f"""
                 <div id="{details_id}" class="test-details" style="display: none;">
-                    <strong>Error Message:</strong> {t['failure_msg']}
+                    <strong>Error Message:</strong> {t["failure_msg"]}
                     <hr style="border: 0; border-top: 1px solid #27272a; margin: 10px 0;">
                     {escaped_tb}
                 </div>
                 """
-                click_handler = f'onclick="toggleDetails(\'{details_id}\')"'
-                
+                click_handler = f"onclick=\"toggleDetails('{details_id}')\""
+
             test_list_html += f"""
             <div class="test-item">
-                <div class="test-header" {click_handler} style="{ "cursor: pointer;" if click_handler else "" }">
+                <div class="test-header" {click_handler} style="{"cursor: pointer;" if click_handler else ""}">
                     <div class="test-name-group">
                         {status_badge}
-                        <span>{t['name']}</span>
+                        <span>{t["name"]}</span>
                     </div>
-                    <span class="test-duration">{t['time']:.2f}s</span>
+                    <span class="test-duration">{t["time"]:.2f}s</span>
                 </div>
                 {details_html}
             </div>
@@ -311,6 +335,7 @@ class RunReporter:
         healing_section_html = ""
         if healing_events:
             import base64
+
             def encode_base64(path_str, prefix_fallback=None):
                 if path_str:
                     p = Path(path_str)
@@ -325,10 +350,16 @@ class RunReporter:
                 if prefix_fallback:
                     scr_dir = Path("screenshots")
                     if scr_dir.exists():
-                        matching_files = sorted(scr_dir.glob(f"{prefix_fallback}_*.png"), key=lambda f: f.stat().st_mtime, reverse=True)
+                        matching_files = sorted(
+                            scr_dir.glob(f"{prefix_fallback}_*.png"),
+                            key=lambda f: f.stat().st_mtime,
+                            reverse=True,
+                        )
                         if matching_files:
                             try:
-                                data = base64.b64encode(matching_files[0].read_bytes()).decode("utf-8")
+                                data = base64.b64encode(
+                                    matching_files[0].read_bytes()
+                                ).decode("utf-8")
                                 return f"data:image/png;base64,{data}"
                             except Exception:
                                 pass
@@ -338,16 +369,16 @@ class RunReporter:
             for h in healing_events:
                 before_src = encode_base64(h.get("before_screenshot"), "before_heal")
                 after_src = encode_base64(h.get("after_screenshot"), "after_heal")
-                
+
                 healing_cards += f"""
                 <div class="healing-event-card">
-                    <div style="font-weight: bold; margin-bottom: 8px;">{h.get('test_name', '').split('::')[-1]}</div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">{h.get("test_name", "").split("::")[-1]}</div>
                     <div style="font-size: 13px; color: var(--text-secondary);">
-                        Action: <code style="color: #38bdf8;">{h.get('action')}</code> | 
-                        Target: <code style="color: #f43f5e;">{h.get('original_selector')}</code>
+                        Action: <code style="color: #38bdf8;">{h.get("action")}</code> |
+                        Target: <code style="color: #f43f5e;">{h.get("original_selector")}</code>
                     </div>
                     <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                        Healed to: <code style="color: #10b981;">{h.get('healed_selector')}</code>
+                        Healed to: <code style="color: #10b981;">{h.get("healed_selector")}</code>
                     </div>
                     <div class="screenshot-container">
                         <div class="screenshot-box">
@@ -388,12 +419,17 @@ class RunReporter:
                     diff_lines.append(f'<div class="diff-added">{line}</div>')
                 elif line.startswith("-") and not line.startswith("---"):
                     diff_lines.append(f'<div class="diff-removed">{line}</div>')
-                elif line.startswith("diff") or line.startswith("---") or line.startswith("+++") or line.startswith("@@"):
+                elif (
+                    line.startswith("diff")
+                    or line.startswith("---")
+                    or line.startswith("+++")
+                    or line.startswith("@@")
+                ):
                     diff_lines.append(f'<div class="diff-header">{line}</div>')
                 else:
-                    diff_lines.append(f'<div>{line}</div>')
+                    diff_lines.append(f"<div>{line}</div>")
             diff_html = "\n".join(diff_lines)
-            
+
             patch_section_html = f"""
             <div class="card">
                 <div class="section-title">Proposed PR Git Patch</div>
@@ -485,7 +521,7 @@ class RunReporter:
         .card-fail {{ border-left: 4px solid var(--color-fail); }}
         .card-heal {{ border-left: 4px solid var(--color-heal); }}
         .card-flaky {{ border-left: 4px solid var(--color-flaky); }}
-        
+
         .stat-value.pass {{ color: var(--color-pass); }}
         .stat-value.fail {{ color: var(--color-fail); }}
         .stat-value.heal {{ color: var(--color-heal); }}
@@ -544,7 +580,7 @@ class RunReporter:
         .badge-fail {{ background: rgba(239, 68, 68, 0.1); color: var(--color-fail); border: 1px solid rgba(239, 68, 68, 0.2); }}
         .badge-heal {{ background: rgba(14, 165, 233, 0.1); color: var(--color-heal); border: 1px solid rgba(14, 165, 233, 0.2); }}
         .badge-flaky {{ background: rgba(245, 158, 11, 0.1); color: var(--color-flaky); border: 1px solid rgba(245, 158, 11, 0.2); }}
-        
+
         .test-duration {{
             font-size: 13px;
             color: var(--text-secondary);
@@ -673,7 +709,7 @@ class RunReporter:
     </div>
 </body>
 </html>"""
-        
+
         try:
             html_path.write_text(html_template, encoding="utf-8")
             print(f"[Reporter] Custom HTML report generated at {html_path}")
@@ -683,11 +719,18 @@ class RunReporter:
     def make_chart(self, stats: dict, title: str):
         try:
             import matplotlib.pyplot as plt
-            labels = ['passed', 'failed', 'skipped']
-            sizes = [stats.get('passed', 0), stats.get('failed', 0), stats.get('skipped', 0)]
-            colors = ['#2ecc71', '#e74c3c', '#f1c40f']
+
+            labels = ["passed", "failed", "skipped"]
+            sizes = [
+                stats.get("passed", 0),
+                stats.get("failed", 0),
+                stats.get("skipped", 0),
+            ]
+            colors = ["#2ecc71", "#e74c3c", "#f1c40f"]
             plt.figure(figsize=(6, 6))
-            plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors)
+            plt.pie(
+                sizes, labels=labels, autopct="%1.1f%%", startangle=140, colors=colors
+            )
             plt.title(title)
             chart_path = self.reports_dir / f"chart_{self.run_id}.png"
             plt.savefig(chart_path)

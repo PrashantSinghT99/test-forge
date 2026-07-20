@@ -4,17 +4,20 @@ Flaky Test Detection and Persistent History Engine.
 Provides atomic thread-safe lock mechanisms (FileLock) and history tracking (SQLite or JSON)
 to compute flakiness scores and detect unstable test cases across execution sessions.
 """
+
 import json
+import os
 import sqlite3
 import time
-import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
+
 
 class FileLock:
     """
     Cross-platform inter-process file locking mechanism using low-level OS flags.
     """
+
     def __init__(self, lock_path: str, timeout: float = 10.0):
         """
         Initialize FileLock.
@@ -57,10 +60,12 @@ class FileLock:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
 
+
 class FlakyDetector:
     """
     Tracks execution status history across test sessions to identify flaky tests.
     """
+
     def __init__(self, db_path: Path):
         """
         Initialize FlakyDetector database.
@@ -72,7 +77,7 @@ class FlakyDetector:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.is_sqlite = self.db_path.suffix in (".db", ".sqlite", ".sqlite3")
         self.schema_version = "1.0"
-        
+
         if self.is_sqlite:
             self._init_sqlite()
 
@@ -95,7 +100,10 @@ class FlakyDetector:
                     PRIMARY KEY (test_id, timestamp)
                 )
             """)
-            conn.execute("INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', ?)", (self.schema_version,))
+            conn.execute(
+                "INSERT OR IGNORE INTO meta (key, value) VALUES ('schema_version', ?)",
+                (self.schema_version,),
+            )
             conn.commit()
         finally:
             conn.close()
@@ -110,7 +118,9 @@ class FlakyDetector:
             conn = sqlite3.connect(self.db_path, timeout=10.0)
             try:
                 cursor = conn.cursor()
-                cursor.execute("SELECT test_id, status FROM flaky_history ORDER BY timestamp ASC")
+                cursor.execute(
+                    "SELECT test_id, status FROM flaky_history ORDER BY timestamp ASC"
+                )
                 for test_id, status in cursor.fetchall():
                     history.setdefault(test_id, []).append(status)
             finally:
@@ -139,13 +149,13 @@ class FlakyDetector:
         """
         if timestamp is None:
             timestamp = time.time()
-        
+
         if self.is_sqlite:
             conn = sqlite3.connect(self.db_path, timeout=10.0)
             try:
                 conn.execute(
                     "INSERT OR REPLACE INTO flaky_history (test_id, status, timestamp) VALUES (?, ?, ?)",
-                    (test_id, status, timestamp)
+                    (test_id, status, timestamp),
                 )
                 conn.commit()
             finally:
@@ -160,14 +170,11 @@ class FlakyDetector:
                             history = json.load(f).get("history", {})
                     except Exception:
                         pass
-                
+
                 history.setdefault(test_id, []).append(status)
                 history[test_id] = history[test_id][-20:]
-                
-                data = {
-                    "schema_version": self.schema_version,
-                    "history": history
-                }
+
+                data = {"schema_version": self.schema_version, "history": history}
                 with open(self.db_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2)
 
@@ -188,13 +195,13 @@ class FlakyDetector:
         runs = history.get(test_id, [])
         if len(runs) < 3:
             return 0.0
-        
+
         passes = runs.count("passed")
         failures = runs.count("failed")
         total = passes + failures
         if total == 0:
             return 0.0
-        
+
         return (2.0 * min(passes, failures)) / total
 
     def is_flaky(self, test_id: str, threshold: float = 0.2) -> bool:

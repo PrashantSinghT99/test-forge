@@ -4,7 +4,9 @@ DOM Candidate Extractor for Self-Healing Engine.
 Executes client-side JavaScript in the browser context via Playwright to extract
 interactive element attributes, unique XPaths, and CSS paths while redacting sensitive fields.
 """
-from typing import List, Dict, Any
+
+from typing import Any, Dict, List
+
 
 def get_candidates(page) -> List[Dict[str, Any]]:
     """
