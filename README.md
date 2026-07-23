@@ -164,12 +164,88 @@ The repository uses two scheduled and event-driven GitHub Actions workflows:
 
 ---
 
-## 🔮 Future Enhancements
+## 🔮 Future Enhancements Roadmap
 
-- **Memory-Based Self-Healing:** Implement a historical baseline snapshot database (`reports/element_baselines.json`). Instead of parsing keywords from failed selectors, the healer will:
-  1. Save element metadata (tag, classes, parent DOM tree indices, text) on the first successful run.
-  2. On locator failure, compare active DOM candidates against this saved snapshot memory.
-  3. Pick the closest match by weighted similarity rules, heal the element, and update the baseline memory.
-- **Heal Impact Analysis:** Map dependencies between Page Object Model (POM) classes and test suites. When a locator is healed inside a shared page class (like `LoginPage`), the engine will:
-  1. Identify all test cases that instantiate or depend on this POM class.
-  2. Flag these dependent test cases as "impacted" and automatically run them to verify the healed locator doesn't cause regressions elsewhere in the suite.
+> These are the planned next steps to evolve Test Forge from a Senior SDET project into a Principal Architect portfolio piece. Ordered by implementation priority.
+
+---
+
+### ✅ Priority 1 — Impact Analysis & Regression Optimization
+
+**Problem:** Running the full suite on every push is expensive and slow.
+
+**Solution:** Build an `impact_analyzer.py` pre-flight script that runs *before* Pytest:
+1. Run `git diff origin/master` to identify changed application files.
+2. Send the diff + test file mapping to `ai_helper` (Ollama / Gemini).
+3. The LLM returns a list of test IDs affected by those changes.
+4. `runner.py` consumes the output as a `-k` expression, slicing 500 tests down to the 10 that matter.
+
+**Outcome:** CI runtimes drop by 80–90%. PR feedback loops shrink from minutes to seconds.
+
+---
+
+### ✅ Priority 2 — Self-Healing "Memory" (Persistent Healing Cache)
+
+**Problem:** The framework heals in-flight every single run, even for the same broken locator — paying the full timeout + API cost each time.
+
+**Solution:** Implement a `reports/active_heals.json` healing cache:
+1. On successful healing, write `{ "original_selector": "healed_selector" }` to the cache.
+2. Intercept `HealingPage.locator()` before it even tries the original — if a cached mapping exists, swap immediately.
+3. Bypass the timeout and AI query entirely until the developer merges the `.diff`.
+
+**Outcome:** Zero-latency re-healing for known-broken locators. Eliminates redundant API calls entirely.
+
+---
+
+### 🔬 Priority 3 — Vision-Language Model (VLM) Healing
+
+**Problem:** DOM extraction can fail on obfuscated dynamic class names (React, Angular minified output). A JSON DOM snapshot is insufficient context for ambiguous layouts.
+
+**Solution:** When a locator fails, take a full-page Playwright screenshot and send the base64-encoded image *alongside* the DOM snippet to `gemini-2.5-flash` (multimodal) or `gpt-4o`:
+> *"I was trying to click the 'Checkout' button. Look at this screenshot, find the button visually, and return its CSS selector from the DOM provided."*
+
+**Outcome:** Healing accuracy on complex/obfuscated UIs improves dramatically. Positions the framework for real-world enterprise applications.
+
+---
+
+### 🔬 Priority 4 — Evaluation Layer (DeepEval Integration)
+
+**Problem:** How do you know the AI healed the *right* element and didn't hallucinate? (e.g., healed "Submit Order" to "Cancel Order" instead.)
+
+**Solution:** Create an `evals/` directory with a nightly evaluation script:
+1. Feed historical `pytest_healing.json` logs into [DeepEval](https://github.com/confident-ai/deepeval).
+2. DeepEval uses an LLM judge to score healing quality: *"Was the healed locator semantically equivalent to the original intent?"*
+3. Flag low-confidence heals for human review.
+
+**Outcome:** Makes AI healing *trustworthy and auditable*, not just functional. Critical for any regulated or enterprise environment.
+
+---
+
+### 🧪 Priority 5 — DSPy Prompt Optimization
+
+**Problem:** The hardcoded prompts in `ai_helper.py` were written once and never optimized. Their performance degrades as page complexity grows and models change.
+
+**Solution:** Replace hardcoded string prompts with [DSPy](https://github.com/stanfordnlp/dspy) modules:
+1. Collect 20+ examples of `(broken_locator, DOM_context) -> correct_healed_locator` from past run logs.
+2. DSPy automatically rewrites and optimizes the prompt via few-shot bootstrapping.
+3. The optimized prompt is serialized and checked into `prompts/healer_prompt.json`.
+
+**Outcome:** The framework self-improves its own AI instructions over time. Prompt quality compounds — the more the framework is used, the better it gets.
+
+---
+
+### 🏢 Priority 6 — Distributed Flaky State for Parallel CI
+
+**Problem:** `FileLock` + SQLite WAL works perfectly on a single machine. With 10 parallel GitHub Actions runners, there is no shared filesystem.
+
+**Solution:** Add a `FLAKY_STORAGE=redis` environment variable flag:
+1. If set, `FlakyDetector` writes results to a free Redis cloud instance (e.g., [Upstash](https://upstash.com/)) or PostgreSQL via a simple REST API call.
+2. All parallel runners converge on the same shared state.
+3. Keep the local JSON fallback when `FLAKY_STORAGE` is not set.
+
+**Outcome:** Proves enterprise-scale architectural awareness. Flakiness detection works correctly across massive distributed test grids.
+
+---
+
+> **Recommended implementation order:** Priority 1 → 2 → 3 → 4 → 5 → 6  
+> Implementing even Priority 1 + 2 places this framework in the top 1% of QA engineering portfolios worldwide.
