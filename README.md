@@ -63,29 +63,33 @@ For a complete architectural overview, refer to [docs/architecture.md](file:///c
 ```text
 test-forge/
 ├── src/
-│   ├── pages/           # Page Object Model classes
+│   ├── pages/           # Page Object Model classes (LoginPage, Inventory, Cart, Checkout)
 │   ├── framework/       # Core framework layer
-│   │   ├── self_healing/ # Healer, strategies, extractor
-│   │   ├── stagehand/    # Stagehand AI planning agent
-│   │   ├── failure_classification.py
-│   │   ├── flaky_detection.py
-│   │   └── ai_helper.py
+│   │   ├── no_ai/       # Heuristic healing: healer, strategies, dom_extractor
+│   │   ├── ai/          # AI-assisted healing: ai_helper routing client
+│   │   ├── core/        # Shared core features: failure_classification, flaky_detection
+│   │   └── stagehand/   # Stagehand AI planning browser agent
 │   └── tests/           # Internal test helpers / utilities
 ├── tests/               # Pytest tests divided by execution branch
-│   ├── no_ai/           # Deterministic healing & classification
-│   ├── ai/              # AI-assisted healing
+│   ├── no_ai/           # Deterministic healing & classification (unique test flows)
+│   ├── ai/              # AI-assisted healing (distinct checkout and locator flows)
 │   ├── stagehand/       # Declarative planner agent tests
 │   ├── utils/           # Framework unit tests
 │   └── conftest.py      # Pytest hooks, page wrappers, command flags
+├── scripts/
+│   └── generate_dashboard.py # Python script generating GitHub Pages dashboard index.html
 ├── runner.py            # CLI entrypoint
 ├── orchestrator.py      # Runner pipeline execution manager
-├── reporter.py          # Summary generator & Matplotlib charts
+├── reporter.py          # Summary generator & visual report manager
+├── Makefile             # Standardized local execution commands (Ruff, Install, Test)
 └── docs/                # Design architecture & documentation
 ```
 
 ---
 
 ## ⚙️ Quick Setup
+
+All execution and environment setup is standardized around the `Makefile`.
 
 ### 1. Create and activate environment
 ```bash
@@ -95,60 +99,74 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 ### 2. Install dependencies & browsers
 ```bash
-pip install -r requirements.txt
-playwright install
+make install
+make install-browsers
+```
+
+### 3. Verify Code Quality (Linter)
+We use Ruff for linting and code formatting:
+```bash
+make lint         # Checks lint and formatting
+make lint-fix     # Automatically fixes lint violations and reformats files
 ```
 
 ---
 
 ## 🏃 Usage
 
-### CLI Commands
+### Makefile Commands (Recommended)
 
-The custom entrypoint `runner.py` manages all pipelines:
+Run branch-specific suites with automated setup flags using simple make targets:
 
-**Run deterministic tests with self-healing & classification**
-```bash
-python runner.py --branch no_ai --self-heal --classify
-```
-
-**Run AI-assisted self-healing branch**
-```bash
-# Using Hugging Face Serverless API
-export HF_API_TOKEN="your-hf-token"
-python runner.py --branch ai --self-heal --classify
-
-# Or using local Ollama (ensure Ollama is running)
-python runner.py --branch ai --self-heal --classify
-```
-
-**Run declarative Stagehand browser agent planner**
-```bash
-python runner.py --branch stagehand
-```
-
-### Command Flags
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--branch` | Target branch suite (`no_ai`, `ai`, `stagehand`) | None |
-| `--self-heal` | Enable self-healing locator wrapper | False |
-| `--classify` | Enable failure classification | False |
-| `--flaky-db` | Path to flaky history JSON/SQLite file | `reports/flaky_history.json` |
-| `--ai-model` | AI model override parameter | None |
-| `--resume` | Resume last session (rerun failed tests) | False |
-| `--parallel` | Number of concurrent workers (`pytest-xdist`) | 0 |
-| `--retries` | Number of retries for failed tests | 0 |
+*   **Deterministic Suite (No AI):** Runs with self-healing, classification, and 2 retries.
+    ```bash
+    make test-no-ai
+    ```
+*   **AI-Assisted Suite:** Runs with AI-assisted locator healing and classification.
+    ```bash
+    # Set your API token before running:
+    export HF_API_TOKEN="your-hf-token"
+    # Or: export GEMINI_API_KEY="your-gemini-key"
+    make test-ai
+    ```
+*   **Stagehand Suite:** Runs declarative AI browser agent planning tests.
+    ```bash
+    make test-stagehand
+    ```
+*   **Run All Suites:** Runs all three execution branches sequentially.
+    ```bash
+    make test-all
+    ```
+*   **Clean Outputs:** Cleans all generated reports, screenshots, videos, and logs.
+    ```bash
+    make clear
+    ```
 
 ---
 
 ## 📊 Reporting & Outputs
 
-Outputs are saved in the `reports/` folder:
-- `reports/run_summary.json`: Unified run statistics containing passed, failed, flaky, and healed counts.
-- `reports/failure_classification.json`: Categorized exceptions and locator details.
-- `reports/chart_[run_id].png`: Visual execution outcome distribution pie chart.
-- `reports/report_[run_id].html`: Standard HTML execution report.
+Outputs are saved under the `reports/[branch_name]/` directory (e.g., `reports/no_ai/` or `reports/ai/`):
+- `report.html`: Custom HTML report with embedded screenshots and Playwright execution videos.
+- `run_summary.json`: Unified statistics containing passed, healed, failed, and flaky counts.
+- `failure_classification.json`: Categorized exceptions and target locator details.
+- `healing_patch.diff`: Git diff containing the suggested code modifications for healed locators.
+
+---
+
+## 🤖 CI/CD Integration
+
+The repository uses two scheduled and event-driven GitHub Actions workflows:
+
+1.  **Test Forge CI/CD Pipeline (`.github/workflows/test-forge.yml`)**:
+    *   **Triggers:** Push to `master`, manually, or daily at 02:00 UTC.
+    *   **Jobs:** Enforces Ruff linter, runs all three test suites in parallel, automatically opens a Pull Request with healed locators if a patch is found, and publishes the consolidated dashboard to GitHub Pages.
+    *   **PR Title Formats:**
+        *   `[AI Self-Healing] Fix locator drift in ai - DO NOT MERGE`
+        *   `[Non-AI Self-Healing] Fix locator drift in no_ai - DO NOT MERGE`
+2.  **Cleanup Stale PRs (`.github/workflows/cleanup-stale-prs.yml`)**:
+    *   **Triggers:** Daily at 03:00 UTC (1 hour after tests) or manually.
+    *   **Jobs:** Finds open Pull Requests containing `Self-Healing` in the title that are older than 1 day, automatically closes them, and deletes their temporary branches to keep the repository clean.
 
 ---
 
