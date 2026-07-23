@@ -44,7 +44,7 @@ def test_inventory_add_to_cart_ai_healing(setup_teardown):
 
     # ⚠️  BROKEN locator for Backpack Add-to-Cart button — DO NOT FIX
     page.locator(
-        "[data-test='add-to-cart-sauce-labs-backpack-broken']"
+        "//*[@id="add-to-cart-sauce-labs-backpack"]"
     ).click()  # BROKEN — DO NOT CHANGE
 
     # After AI healing resolves correct button, cart badge should update
