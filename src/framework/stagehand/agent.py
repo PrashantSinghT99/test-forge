@@ -3,7 +3,7 @@ import os
 import urllib.request
 from typing import Dict, List, Optional
 
-from ..self_healing.dom_extractor import get_candidates
+from ..no_ai.dom_extractor import get_candidates
 
 
 class StagehandAgent:
@@ -75,7 +75,7 @@ class StagehandAgent:
         self, goal: str, url: str, candidates: List[Dict]
     ) -> Optional[Dict]:
         ollama_url = os.environ.get("OLLAMA_API_URL", "http://localhost:11434")
-        from ..ai_helper import check_ollama_alive
+        from ..ai.ai_helper import check_ollama_alive
 
         use_ollama = check_ollama_alive(ollama_url)
         use_hf = os.environ.get("HF_API_TOKEN") is not None
