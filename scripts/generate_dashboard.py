@@ -47,13 +47,7 @@ def make_dashboard(reports_dir: str = "reports"):
             </div>
             <a class="btn" href="ai/index.html">View Reports</a>
         </div>
-        <div class="branch-card">
-            <div class="branch-info">
-                <div class="branch-name">&#127381; Stagehand Branch (Browser Agent)</div>
-                <div class="branch-desc">Declarative AI browser agent execution</div>
-            </div>
-            <a class="btn" href="stagehand/index.html">View Reports</a>
-        </div>
+
     </div>
 </body>
 </html>"""

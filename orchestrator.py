@@ -50,7 +50,7 @@ def clear_previous(branch: str = None):
         for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS):
             if d.exists():
                 for child in d.iterdir():
-                    if child.is_dir() and child.name in ("no_ai", "ai", "stagehand"):
+                    if child.is_dir() and child.name in ("no_ai", "ai"):
                         continue
                     try:
                         if child.is_file() or child.is_symlink():
@@ -146,8 +146,6 @@ def execute_run(options: dict):
             path = "tests/no_ai"
         elif branch == "ai":
             path = "tests/ai"
-        elif branch == "stagehand":
-            path = "tests/stagehand"
 
     base_path = Path(path)
 

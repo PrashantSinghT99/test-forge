@@ -42,7 +42,7 @@ jobs:
         run: ruff format --check .
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 2: Test — parallel matrix across no_ai / ai / stagehand
+  # JOB 2: Test — parallel matrix across no_ai / ai
   # ─────────────────────────────────────────────────────────────
   test:
     needs: lint
@@ -58,9 +58,6 @@ jobs:
           - branch: ai
             make_target: test-ai
             pr_prefix: "[AI Self-Healing]"
-          - branch: stagehand
-            make_target: test-stagehand
-            pr_prefix: "[Stagehand Self-Healing]"
     steps:
       - uses: actions/checkout@v4
 
@@ -89,7 +86,7 @@ jobs:
 
       # Self-Healing PR: apply patch, push branch, open PR — NEVER MERGE
       - name: Create PR with Healed Locators
-        if: always() && (matrix.branch == 'no_ai' || matrix.branch == 'ai')
+        if: always()
         run: |
           PATCH_FILE="reports/${{ matrix.branch }}/healing_patch.diff"
           if [ -f "$PATCH_FILE" ] && [ -s "$PATCH_FILE" ]; then
@@ -184,7 +181,7 @@ jobs:
           echo "=== Downloaded artifact structure ==="
           find merged-reports -type f | head -50 || true
 
-          mkdir -p reports/no_ai reports/ai reports/stagehand
+          mkdir -p reports/no_ai reports/ai
 
           if [ -d "merged-reports/reports-no_ai" ]; then
             cp -r merged-reports/reports-no_ai/. reports/no_ai/
@@ -198,15 +195,11 @@ jobs:
           else
             echo "WARNING: ai reports not found"
           fi
-          if [ -d "merged-reports/reports-stagehand" ]; then
-            cp -r merged-reports/reports-stagehand/. reports/stagehand/
-            echo "Copied stagehand reports"
-          fi
 
           echo "=== Final reports structure ==="
           find reports -type f | head -50 || true
 
-          for branch in no_ai ai stagehand; do
+          for branch in no_ai ai; do
             if [ -f "reports/$branch/report.html" ]; then
               cp "reports/$branch/report.html" "reports/$branch/index.html"
               echo "Created index.html for $branch"

@@ -11,15 +11,12 @@ test-forge/
 │       │   ├── dom_extractor.py
 │       │   ├── strategies.py
 │       │   └── healer.py
-│       ├── stagehand/    # Declarative planning agent
-│       │   └── agent.py
 │       ├── failure_classification.py # Exception categories & regex locator parser
 │       ├── flaky_detection.py # SQLite WAL and JSON locked result history
 │       └── ai_helper.py # Ollama / HF / Gemini routing client
 ├── tests/               # isolated test branches
 │   ├── no_ai/           # Deterministic heuristics
 │   ├── ai/              # AI-assisted matching
-│   ├── stagehand/       # Agent execution workflows
 │   └── utils/           # Framework unit tests
 ├── runner.py            # CLI parser entrypoint
 ├── orchestrator.py      # Execution flow pipeline manager

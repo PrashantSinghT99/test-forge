@@ -12,7 +12,6 @@ This project is augmented with a shared core testing layer providing failure cla
 - **Execution Branches**
   - `tests/no_ai/`: Completely deterministic production-ready tests using localized self-healing heuristics.
   - `tests/ai/`: AI-assisted testing integrating open-source local and cloud-hosted LLM endpoints.
-  - `tests/stagehand/`: Declarative AI Browser Agent planning tests executing goals step-by-step.
 
 - **Failure Classification**
   - Parses test failures and categorizes exceptions into typed results (`Timeout`, `Locator Issue`, `Assertion`, `Other`).
@@ -68,12 +67,11 @@ test-forge/
 │   │   ├── no_ai/       # Heuristic healing: healer, strategies, dom_extractor
 │   │   ├── ai/          # AI-assisted healing: ai_helper routing client
 │   │   ├── core/        # Shared core features: failure_classification, flaky_detection
-│   │   └── stagehand/   # Stagehand AI planning browser agent
+│   │   └── core/        # Shared core features: failure_classification, flaky_detection
 │   └── tests/           # Internal test helpers / utilities
 ├── tests/               # Pytest tests divided by execution branch
 │   ├── no_ai/           # Deterministic healing & classification (unique test flows)
 │   ├── ai/              # AI-assisted healing (distinct checkout and locator flows)
-│   ├── stagehand/       # Declarative planner agent tests
 │   ├── utils/           # Framework unit tests
 │   └── conftest.py      # Pytest hooks, page wrappers, command flags
 ├── scripts/
@@ -129,11 +127,7 @@ Run branch-specific suites with automated setup flags using simple make targets:
     # Or: export GEMINI_API_KEY="your-gemini-key"
     make test-ai
     ```
-*   **Stagehand Suite:** Runs declarative AI browser agent planning tests.
-    ```bash
-    make test-stagehand
-    ```
-*   **Run All Suites:** Runs all three execution branches sequentially.
+*   **Run All Suites:** Runs both execution branches sequentially.
     ```bash
     make test-all
     ```

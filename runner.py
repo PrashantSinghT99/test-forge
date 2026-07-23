@@ -46,7 +46,7 @@ def clear_previous(branch: str = None):
         for d in (REPORTS, LOGS, VIDEOS, SCREENSHOTS):
             if d.exists():
                 for child in d.iterdir():
-                    if child.is_dir() and child.name in ("no_ai", "ai", "stagehand"):
+                    if child.is_dir() and child.name in ("no_ai", "ai"):
                         continue
                     try:
                         if child.is_file() or child.is_symlink():
@@ -357,7 +357,7 @@ def make_pie_chart(stats, outpath: Path, title: str = "Test Results"):
 @click.option(
     "--branch",
     default=None,
-    type=click.Choice(["no_ai", "ai", "stagehand"]),
+    type=click.Choice(["no_ai", "ai"]),
     help="Target branch folder",
 )
 @click.option(
