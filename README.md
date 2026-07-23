@@ -166,8 +166,6 @@ The repository uses two scheduled and event-driven GitHub Actions workflows:
 
 ## 🔮 Future Enhancements Roadmap
 
-> These are the planned next steps to evolve Test Forge from a Senior SDET project into a Principal Architect portfolio piece. Ordered by implementation priority.
-
 ---
 
 ### ✅ Priority 1 — Impact Analysis & Regression Optimization
@@ -247,5 +245,4 @@ The repository uses two scheduled and event-driven GitHub Actions workflows:
 
 ---
 
-> **Recommended implementation order:** Priority 1 → 2 → 3 → 4 → 5 → 6  
-> Implementing even Priority 1 + 2 places this framework in the top 1% of QA engineering portfolios worldwide.
+> **Recommended implementation order:** Priority 1 → 2 → 3 → 4 → 5 → 6
