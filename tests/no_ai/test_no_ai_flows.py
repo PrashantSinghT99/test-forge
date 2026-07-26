@@ -38,7 +38,7 @@ def test_login_healing_standard_user(setup_teardown):
     """
     page = setup_teardown
     # ⚠️  INTENTIONALLY BROKEN — keeps the self-healing demo alive on every CI run
-    page.locator("//input[@id='user-name-broken']").fill(
+    page.locator("//*[@id="user-name"]").fill(
         "standard_user"
     )  # BROKEN — DO NOT CHANGE
 
