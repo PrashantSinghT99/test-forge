@@ -2,7 +2,7 @@ name: Cleanup Stale Self-Healing PRs
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # daily at 03:00 UTC (08:30 IST) — 1 hour after test run
+    - cron: '0 3 */21 * *'   # every 3 weeks at 03:00 UTC (08:30 IST)
   workflow_dispatch:       # allows manual trigger from GitHub Actions UI
 
 permissions:
