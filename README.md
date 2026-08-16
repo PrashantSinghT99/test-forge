@@ -4,6 +4,22 @@ Test Forge Automation Framework is an AI-augmented UI automation framework built
 
 ---
 
+## Companion Project: Nexus Automate
+
+[**Nexus Automate — Hybrid Playwright + Stagehand Framework**](https://github.com/PrashantSinghT99/nexus-stagehand-test) complements Test Forge with a second approach to AI-assisted end-to-end testing. While Test Forge adds intelligence inside a Python, Pytest, and Page Object Model architecture, Nexus Automate combines deterministic Playwright locators with AI-driven [Stagehand](https://github.com/browserbase/stagehand) fallback actions in a TypeScript-based runtime.
+
+### Nexus Automate Features
+
+- **CDP Bridge:** Playwright and Stagehand share a single browser instance through `connectOverCDP`.
+- **Hybrid Routing:** Standard locators run deterministically with Playwright, while instructions beginning with `ai:` route to Stagehand LLM actions.
+- **Fast Auth Reuse:** A persistent JSON cookie store skips repeated UI logins.
+- **Spec Timeout Enforcement:** Strict timeout limits are applied to every spec run.
+- **Strict Exit Codes:** Failed runs return exit code `1` for reliable CI pipeline integration.
+
+Together, **Test Forge** and **Nexus Automate** demonstrate two complementary architectures for AI-assisted browser automation: framework-level self-healing and failure intelligence, and runtime-level hybrid deterministic/LLM action routing.
+
+---
+
 ## 🚀 Key Features
 
 - **Execution Branches**
