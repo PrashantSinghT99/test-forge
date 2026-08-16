@@ -1,9 +1,6 @@
 # Test Forge Automation Framework
 
-A lightweight yet robust test automation framework designed for **learning and architectural demonstration**.  
-It utilizes the **Page Object Model (POM)** pattern, a custom **Click-based CLI orchestrator**, and **Pytest** to handle UI automation with Playwright.
-
-This project is augmented with a shared core testing layer providing failure classification, process-safe flaky test history tracking, and self-healing locators (supporting both local heuristics and AI models).
+Test Forge Automation Framework is an AI-augmented UI automation framework built on Playwright and Pytest. Designed as an architectural showcase, it modernizes traditional Page Object Model (POM) design by injecting advanced intelligence directly into the testing layer—featuring AI-driven self-healing locators, automated failure classification, and stateful flaky test tracking.
 
 ---
 
